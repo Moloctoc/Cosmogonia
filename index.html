@@ -151,13 +151,13 @@
   /* TAREAS PANEL */
   .tasks-layout {
     display: grid;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: 1fr 300px;
     height: calc(100vh - 56px - 48px);
   }
   .sidebar {
     background: rgba(2,6,23,0.6);
     backdrop-filter: blur(12px);
-    border-right: 1px solid var(--glass-border);
+    border-left: 1px solid var(--glass-border);
     overflow-y: auto;
     padding: 16px;
     display: flex;
@@ -879,7 +879,7 @@
       overflow: visible;
     }
     .sidebar {
-      border-right: none;
+      border-left: none;
       border-bottom: 1px solid var(--glass-border);
       max-height: none;
       overflow: visible;
@@ -1067,6 +1067,23 @@
   <div class="panel active" id="panel-tareas">
     <div class="tasks-layout">
 
+      <!-- BOARD -->
+      <div class="task-board">
+        <div class="board-header">
+          <div class="board-title">Backlog activo</div>
+        </div>
+        <div class="filter-bar" id="filter-bar">
+          <div class="filter-chip active" onclick="setFilter('todos', this)">Todos</div>
+          <div class="filter-chip" onclick="setFilter('ventas', this)">Ventas</div>
+          <div class="filter-chip" onclick="setFilter('Cosmogonía', this)">Cosmogonía</div>
+          <div class="filter-chip" onclick="setFilter('Levering Trade', this)">Levering</div>
+          <div class="filter-chip" onclick="setFilter('urgente', this)">Urgentes</div>
+          <div class="filter-chip" onclick="setFilter('pendiente', this)">Pendientes</div>
+        </div>
+        <div id="task-list"></div>
+      </div>
+    </div>
+
       <!-- SIDEBAR FORM -->
       <div class="sidebar">
         <div class="sidebar-toggle" onclick="toggleSidebar()">
@@ -1171,22 +1188,7 @@
         </div><!-- /sidebar-inner -->
       </div><!-- /sidebar-inner wrapper -->
 
-      <!-- BOARD -->
-      <div class="task-board">
-        <div class="board-header">
-          <div class="board-title">Backlog activo</div>
-        </div>
-        <div class="filter-bar" id="filter-bar">
-          <div class="filter-chip active" onclick="setFilter('todos', this)">Todos</div>
-          <div class="filter-chip" onclick="setFilter('ventas', this)">Ventas</div>
-          <div class="filter-chip" onclick="setFilter('Cosmogonía', this)">Cosmogonía</div>
-          <div class="filter-chip" onclick="setFilter('Levering Trade', this)">Levering</div>
-          <div class="filter-chip" onclick="setFilter('urgente', this)">Urgentes</div>
-          <div class="filter-chip" onclick="setFilter('pendiente', this)">Pendientes</div>
-        </div>
-        <div id="task-list"></div>
-      </div>
-    </div>
+      
 
     <!-- TIMER BAR -->
     <div class="timer-bar" id="timer-bar" style="display:none;">
