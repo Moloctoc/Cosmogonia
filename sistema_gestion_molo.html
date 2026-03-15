@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COSMO OS — Sistema de Gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000000;
+    --bg2: #020617;
+    --bg3: #0a0f1e;
+    --surface: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #E2E8F0;
+    --muted: #94A3B8;
+    --dim: #4a5568;
+    --accent: #FFC629;
+    --accent2: #E6AC00;
+    --gold: #FFC629;
+    --gold2: #E6AC00;
+    --teal: #2dd4bf;
+    --coral: #fb7185;
+    --green: #4ade80;
+    --orange: #fb923c;
+    --blue: #60a5fa;
+    --font-mono: 'Inter', monospace;
+    --font-sans: 'Inter', sans-serif;
+    --r: 8px;
+    --r2: 12px;
+    --r3: 16px;
+    --glass-bg: rgba(255,255,255,0.03);
+    --glass-border: rgba(255,255,255,0.06);
+    --cosmo: #FFC629;
+    --cosmo-hover: #E6AC00;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(at 0% 0%, rgba(255,198,41,0.08) 0, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(30,58,138,0.04) 0, transparent 50%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  @keyframes revealUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .reveal { animation: revealUp 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+
+  /* NAV */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(2,6,23,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 0 20px;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    margin-right: 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+  .logo img {
+    height: 28px;
+    width: auto;
+    opacity: 0.9;
+    display: block;
+  }
+  .logo-dot { display: none; }
+  .nav-tabs {
+    display: flex;
+    gap: 2px;
+    height: 100%;
+  }
+  .nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    height: 100%;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    position: relative;
+    top: 1px;
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--cosmo); border-bottom-color: var(--cosmo); font-weight: 500; }
+  .nav-tab .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .time-display {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--dim);
+  }
+  .sales-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,198,41,0.08);
+    border: 1px solid rgba(255,198,41,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--cosmo);
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .sales-pill-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* MAIN LAYOUT */
+  .main { flex: 1; display: flex; overflow: hidden; }
+  .panel { display: none; flex: 1; overflow: auto; padding-bottom: 48px; }
+  .panel.active { display: flex; flex-direction: column; }
+
+  /* TAREAS PANEL */
+  .tasks-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    height: calc(100vh - 56px - 48px);
+  }
+  .sidebar {
+    background: rgba(2,6,23,0.6);
+    backdrop-filter: blur(12px);
+    border-right: 1px solid var(--glass-border);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .form-section-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-label { font-size: 12px; color: var(--muted); }
+  .form-input, .form-select, .form-textarea {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--r);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    padding: 8px 10px;
+    width: 100%;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: rgba(255,198,41,0.5);
+    background: rgba(255,198,41,0.03);
+  }
+  .form-select option { background: var(--bg3); }
+  .form-textarea { resize: vertical; min-height: 64px; }
+
+  .btn-primary {
+    background: var(--cosmo);
+    color: #000;
+    border: none;
+    border-radius: var(--r);
+    padding: 10px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.18s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  .btn-primary:hover { background: var(--cosmo-hover); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-danger {
+    background: none;
+    color: var(--coral);
+    border: 1px solid rgba(251, 113, 133, 0.3);
+    border-radius: var(--r);
+    padding: 4px 10px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-danger:hover { background: rgba(251,113,133,0.1); }
+
+  /* TASK BOARD */
+  .task-board {
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: transparent;
+  }
+  .board-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .board-title {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .filter-chip {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: 'Inter', sans-serif;
+  }
+  .filter-chip:hover { border-color: rgba(255,198,41,0.2); color: var(--text); }
+  .filter-chip.active {
+    background: rgba(255,198,41,0.08);
+    color: var(--cosmo);
+    border-color: rgba(255,198,41,0.25);
+  }
+
+  /* TASK CARD */
+  .task-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r2);
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 20px 1fr auto;
+    gap: 10px;
+    align-items: start;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: pointer;
+  }
+  .task-card:hover { border-color: rgba(255,198,41,0.2); background: rgba(255,198,41,0.02); }
+  .task-card.done { opacity: 0.45; }
+  .task-check {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.15s;
+  }
+  .task-check:hover { border-color: var(--cosmo); }
+  .task-check.checked { background: var(--cosmo); border-color: var(--cosmo); }
+  .task-check.checked::after { content:''; width:6px; height:4px; border-left:1.5px solid #fff; border-bottom:1.5px solid #fff; transform: rotate(-45deg) translate(1px,-1px); }
+  .task-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .task-title {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .task-meta {
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  }
+  .task-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+  }
+  .tag-cosmogonia { background: rgba(196,181,253,0.12); color: var(--accent); border: 1px solid rgba(196,181,253,0.2); }
+  .tag-levering   { background: rgba(251,191,36,0.1); color: var(--gold); border: 1px solid rgba(251,191,36,0.2); }
+  .tag-ventas     { background: rgba(251,146,60,0.1); color: var(--orange); border: 1px solid rgba(251,146,60,0.2); }
+  .tag-admin      { background: rgba(96,165,250,0.1); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+  .tag-produccion { background: rgba(45,212,191,0.1); color: var(--teal); border: 1px solid rgba(45,212,191,0.2); }
+  .tag-default    { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+
+  .deadline-text {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .deadline-text.urgent { color: var(--coral); }
+  .deadline-text.soon { color: var(--gold); }
+
+  .task-actions { display: flex; gap: 4px; align-items: center; }
+  .timer-btn {
+    width: 28px; height: 28px;
+    border-radius: var(--r);
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s;
+    font-family: var(--font-sans);
+  }
+  .timer-btn:hover { background: var(--surface); color: var(--text); }
+  .timer-btn.running { background: rgba(196,181,253,0.15); border-color: var(--accent); color: var(--accent); }
+
+  /* TIMER BAR */
+  .timer-bar {
+    background: rgba(2,6,23,0.9);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255,198,41,0.15);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+  }
+  .timer-display {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--cosmo);
+    min-width: 80px;
+    letter-spacing: -0.01em;
+  }
+  .timer-task { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* REPORTE */
+  .report-layout {
+    padding: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-title { font-size: 20px; font-weight: 500; }
+  .report-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .period-btns { display: flex; gap: 4px; }
+  .period-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.15s;
+  }
+  .period-btn.active { background: var(--surface); color: var(--text); border-color: var(--border2); }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r2);
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+  }
+  .kpi-card:hover { border-color: rgba(255,198,41,0.15); }
+  .kpi-label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); letter-spacing: 0.05em; }
+  .kpi-value { font-size: 24px; font-weight: 700; margin: 6px 0 2px; letter-spacing: -0.02em; }
+  .kpi-delta { font-size: 11px; font-family: var(--font-mono); }
+  .delta-up { color: var(--green); }
+  .delta-down { color: var(--coral); }
+
+  .chart-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r2);
+    padding: 20px;
+  }
+  .chart-title { font-size: 13px; font-weight: 500; margin-bottom: 16px; color: var(--text); }
+
+  .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: grid; grid-template-columns: 110px 1fr 50px; gap: 10px; align-items: center; }
+  .bar-label { font-size: 12px; color: var(--muted); text-align: right; font-family: var(--font-mono); }
+  .bar-track { height: 8px; background: var(--surface); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .bar-value { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+
+  .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .log-table { width: 100%; border-collapse: collapse; }
+  .log-table th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+    text-align: left;
+    padding: 0 0 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .log-table td {
+    padding: 10px 0;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(46,46,56,0.5);
+    color: var(--muted);
+  }
+  .log-table td:first-child { color: var(--text); }
+
+  /* VENTAS */
+  .sales-layout {
+    padding: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .sales-header {
+    background: rgba(255,198,41,0.04);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,198,41,0.18);
+    border-radius: var(--r2);
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sales-kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sales-kpi { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: var(--r2); padding: 16px; }
+  .sales-kpi-num { font-size: 28px; font-weight: 500; color: var(--gold); font-family: var(--font-mono); }
+  .sales-kpi-label { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: var(--font-mono); letter-spacing: 0.05em; }
+  .sales-kpi-sub { font-size: 11px; color: var(--dim); margin-top: 2px; }
+
+  .pipeline-stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .pipeline-stage {
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r2);
+    padding: 12px;
+    text-align: center;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .pipeline-stage:hover { border-color: rgba(255,198,41,0.2); }
+  .pipeline-stage::after {
+    content: '→';
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--dim);
+    font-size: 12px;
+    z-index: 1;
+  }
+  .pipeline-stage:last-child::after { display: none; }
+  .stage-name { font-size: 10px; font-family: var(--font-mono); color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+  .stage-count { font-size: 22px; font-weight: 500; margin: 6px 0 2px; color: var(--text); }
+  .stage-label { font-size: 10px; color: var(--dim); font-family: var(--font-mono); }
+
+  .insight-list { display: flex; flex-direction: column; gap: 8px; }
+  .insight-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg2);
+    border-radius: var(--r);
+    border: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .insight-icon {
+    width: 28px; height: 28px;
+    border-radius: var(--r);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .insight-body { flex: 1; }
+  .insight-title { font-size: 13px; font-weight: 500; color: var(--text); }
+  .insight-desc { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--dim);
+    gap: 8px;
+  }
+  .empty-state-icon { font-size: 28px; opacity: 0.4; }
+  .empty-state-text { font-size: 13px; font-family: var(--font-mono); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: rgba(2,6,23,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,198,41,0.12);
+    border-radius: var(--r3);
+    padding: 24px;
+    width: 420px;
+    max-width: 90vw;
+  }
+  .modal-title { font-size: 15px; font-weight: 500; margin-bottom: 16px; }
+  .modal-log { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; max-height: 200px; overflow-y: auto; }
+  .modal-log-row {
+    display: flex; justify-content: space-between;
+    padding: 8px 10px;
+    background: var(--bg3);
+    border-radius: var(--r);
+    font-size: 12px;
+    font-family: var(--font-mono);
+  }
+  .modal-log-date { color: var(--muted); }
+  .modal-log-mins { color: var(--accent); }
+  .modal-close {
+    background: none; border: 1px solid var(--border); border-radius: var(--r);
+    color: var(--muted); padding: 8px 16px; cursor: pointer; font-family: var(--font-sans);
+    font-size: 13px; width: 100%;
+  }
+
+  .divider { height: 1px; background: var(--border); }
+
+  /* LINKS */
+  .link-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .link-row .form-input { flex: 1; }
+  .link-add-btn {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .link-add-btn:hover { background: var(--border); color: var(--text); }
+  .link-preview {
+    display: flex; flex-direction: column; gap: 4px; margin-top: 4px;
+  }
+  .link-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+  }
+  .link-chip-label { flex: 1; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .link-chip-remove {
+    color: var(--dim); cursor: pointer; font-size: 13px; line-height: 1;
+    background: none; border: none; padding: 0; transition: color 0.1s;
+  }
+  .link-chip-remove:hover { color: var(--coral); }
+  .task-link-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(45,212,191,0.08);
+    color: var(--teal);
+    border: 1px solid rgba(45,212,191,0.2);
+    text-decoration: none;
+    transition: background 0.15s;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .task-link-btn:hover { background: rgba(45,212,191,0.18); }
+  .modal-links { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .modal-link-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    background: var(--bg3);
+    border-radius: var(--r);
+    border: 1px solid var(--border);
+  }
+  .modal-link-icon { font-size: 13px; flex-shrink: 0; }
+  .modal-link-label { flex: 1; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .modal-link-open {
+    font-family: var(--font-mono); font-size: 10px; color: var(--teal);
+    text-decoration: none; padding: 3px 8px;
+    border: 1px solid rgba(45,212,191,0.25); border-radius: 4px;
+    transition: background 0.15s; white-space: nowrap;
+  }
+  .modal-link-open:hover { background: rgba(45,212,191,0.1); }
+
+  /* CLIENT MANAGER */
+  .client-select-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .client-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: rgba(2,6,23,0.98);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,198,41,0.2);
+    border-radius: var(--r2);
+    z-index: 500;
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+    max-height: 260px;
+  }
+  .client-dropdown.open { display: flex; }
+  .client-option {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px;
+    font-size: 13px; font-weight: 300;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    gap: 8px;
+  }
+  .client-option:last-child { border-bottom: none; }
+  .client-option:hover { background: rgba(255,198,41,0.06); }
+  .client-option.selected { color: var(--cosmo); }
+  .client-option-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .client-option-name { flex: 1; }
+  .client-option-del {
+    background: none; border: none; color: var(--dim);
+    cursor: pointer; font-size: 13px; padding: 2px 4px;
+    line-height: 1; transition: color 0.12s; opacity: 0;
+  }
+  .client-option:hover .client-option-del { opacity: 1; }
+  .client-option-del:hover { color: var(--coral); }
+  .client-add-row {
+    display: flex; gap: 6px; align-items: center;
+    padding: 8px 10px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+  }
+  .client-add-row input {
+    flex: 1; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r);
+    color: var(--text); font-family: 'Inter', sans-serif;
+    font-size: 12px; font-weight: 300;
+    padding: 6px 8px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .client-add-row input:focus { border-color: rgba(255,198,41,0.4); }
+  .client-add-row input::placeholder { color: var(--dim); }
+  .client-add-btn {
+    background: var(--cosmo); border: none; border-radius: 6px;
+    color: #000; font-size: 13px; font-weight: 600;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+  }
+  .client-add-btn:hover { background: var(--cosmo-hover); }
+  .client-display-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--r);
+    color: var(--text); font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 300;
+    padding: 8px 10px; width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; transition: border-color 0.2s;
+    outline: none; text-align: left;
+  }
+  .client-display-btn:focus, .client-display-btn:hover {
+    border-color: rgba(255,198,41,0.4);
+  }
+  .client-display-btn .chevron {
+    font-size: 10px; color: var(--muted); transition: transform 0.2s;
+  }
+  .client-display-btn.open .chevron { transform: rotate(180deg); }
+  .client-dot-inline {
+    width: 7px; height: 7px; border-radius: 50%;
+    display: inline-block; margin-right: 7px; flex-shrink: 0;
+  }
+
+  /* EDIT + NOTES */
+  .edit-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 300;
+    display: none; align-items: center; justify-content: center;
+  }
+  .edit-modal-overlay.open { display: flex; }
+  .edit-modal {
+    background: rgba(2,6,23,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,198,41,0.14);
+    border-radius: var(--r3);
+    padding: 24px;
+    width: 460px; max-width: 92vw;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .edit-modal-title {
+    font-size: 14px; font-weight: 500; color: var(--text);
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+  .edit-modal-actions {
+    display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;
+  }
+  .btn-ghost {
+    background: none; border: 1px solid var(--border); border-radius: var(--r);
+    color: var(--muted); padding: 8px 14px; font-size: 13px;
+    font-family: var(--font-sans); cursor: pointer; transition: all 0.15s;
+  }
+  .btn-ghost:hover { background: var(--surface); color: var(--text); }
+  .btn-save {
+    background: var(--cosmo); border: none; border-radius: var(--r);
+    color: #000; padding: 8px 16px; font-size: 13px;
+    font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;
+    transition: background 0.18s;
+    letter-spacing: 0.01em;
+  }
+  .btn-save:hover { background: var(--cosmo-hover); }
+  .edit-btn {
+    width: 28px; height: 28px; border-radius: var(--r);
+    border: 1px solid var(--border); background: none;
+    color: var(--muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; transition: all 0.15s; font-family: var(--font-sans);
+  }
+  .edit-btn:hover { background: var(--surface); color: var(--accent); border-color: var(--accent2); }
+  /* NOTES */
+  .notes-section { margin-top: 4px; }
+  .notes-header {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; font-family: var(--font-mono); color: var(--dim);
+    letter-spacing: 0.07em; margin-bottom: 8px;
+  }
+  .note-add-row { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 10px; }
+  .note-add-row textarea {
+    flex: 1; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r);
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 300;
+    padding: 8px 10px; resize: none; height: 64px;
+    outline: none; transition: border-color 0.2s; line-height: 1.5;
+  }
+  .note-add-row textarea:focus { border-color: rgba(255,198,41,0.4); }
+  .note-add-row textarea::placeholder { color: var(--dim); }
+  .btn-note-add {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r); color: var(--muted);
+    padding: 6px 10px; font-size: 12px; font-family: var(--font-mono);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    align-self: flex-end;
+  }
+  .btn-note-add:hover { background: var(--border); color: var(--text); }
+  .notes-list { display: flex; flex-direction: column; gap: 8px; }
+  .note-item {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--r); padding: 10px 12px;
+    position: relative;
+    transition: border-color 0.15s;
+  }
+  .note-item:hover { border-color: rgba(255,198,41,0.15); }
+  .note-item:hover .note-del { opacity: 1; }
+  .note-text { font-size: 13px; color: var(--text); line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+  .note-date { font-family: var(--font-mono); font-size: 10px; color: var(--dim); margin-top: 5px; }
+  .note-del {
+    position: absolute; top: 8px; right: 8px;
+    background: none; border: none; color: var(--dim);
+    font-size: 13px; cursor: pointer; opacity: 0;
+    transition: opacity 0.15s, color 0.15s; line-height: 1; padding: 2px;
+  }
+  .note-del:hover { color: var(--coral); }
+  .notes-empty { font-size: 12px; color: var(--dim); font-family: var(--font-mono); padding: 6px 0; }
+  .task-note-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-family: var(--font-mono); font-size: 10px;
+    padding: 2px 6px; border-radius: 4px;
+    background: rgba(129,140,248,0.1); color: var(--accent2);
+    border: 1px solid rgba(129,140,248,0.18);
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+    <img
+      src="https://www.cosmogonia.com.mx/wp-content/uploads/2025/06/COSMO-LOGO-BLANCO-VIDEO-2.png"
+      alt="Cosmogonía"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+    >
+    <span style="display:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;color:var(--cosmo);letter-spacing:0.08em;text-transform:uppercase;">COSMO OS</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPanel('tareas',this)">
+      <div class="dot" style="background:var(--accent)"></div>
+      Tareas
+    </button>
+    <button class="nav-tab" onclick="showPanel('reporte',this)">
+      <div class="dot" style="background:var(--teal)"></div>
+      Reporte
+    </button>
+    <button class="nav-tab" onclick="showPanel('ventas',this)">
+      <div class="dot" style="background:var(--gold)"></div>
+      Ventas
+    </button>
+  </div>
+  <div class="topbar-right">
+    <div class="time-display" id="clock">--:--</div>
+    <div class="sales-pill">
+      <div class="sales-pill-dot"></div>
+      VENTAS PRIMERO
+    </div>
+  </div>
+</div>
+
+<!-- ===== PANEL: TAREAS ===== -->
+<div class="main">
+  <div class="panel active" id="panel-tareas">
+    <div class="tasks-layout">
+
+      <!-- SIDEBAR FORM -->
+      <div class="sidebar">
+        <div>
+          <div class="form-section-title">Nueva Tarea</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="form-group">
+              <label class="form-label">Tarea</label>
+              <input class="form-input" id="in-titulo" placeholder="Describe la tarea...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cliente</label>
+              <div class="client-select-wrap" id="wrap-in-cliente">
+                <button type="button" class="client-display-btn" id="btn-in-cliente" onclick="toggleClientDropdown('in-cliente')">
+                  <span id="label-in-cliente" style="display:flex;align-items:center;">
+                    <span class="client-dot-inline" id="dot-in-cliente" style="background:#c4b5fd"></span>
+                    Cosmogonía
+                  </span>
+                  <span class="chevron">▼</span>
+                </button>
+                <input type="hidden" id="in-cliente" value="Cosmogonía">
+                <div class="client-dropdown" id="dd-in-cliente">
+                  <div class="client-options-list" id="opts-in-cliente"></div>
+                  <div class="client-add-row">
+                    <input type="text" id="new-client-name-in" placeholder="Nuevo cliente..." onkeydown="if(event.key==='Enter')addClient('in')">
+                    <button class="client-add-btn" onclick="addClient('in')" title="Agregar">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Categoría</label>
+              <select class="form-select" id="in-categoria">
+                <option value="ventas">Ventas</option>
+                <option value="produccion">Producción</option>
+                <option value="consultoría">Consultoría</option>
+                <option value="admin">Admin / Ops</option>
+                <option value="estrategia">Estrategia</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Proyecto</label>
+              <input class="form-input" id="in-proyecto" placeholder="ej. Roadmap Q2, Catálogo...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Deadline</label>
+              <input class="form-input" type="date" id="in-deadline">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tiempo estimado (min)</label>
+              <input class="form-input" type="number" id="in-tiempo" placeholder="60" min="5" step="5">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prioridad</label>
+              <select class="form-select" id="in-prioridad">
+                <option value="alta">Alta</option>
+                <option value="media" selected>Media</option>
+                <option value="baja">Baja</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Links del archivo de trabajo</label>
+              <div class="link-row">
+                <input class="form-input" id="in-link-label" placeholder="Nombre (ej. Brief Q2)" style="width:42%">
+                <input class="form-input" id="in-link-url" placeholder="https://..." style="flex:1">
+                <button class="link-add-btn" onclick="addLinkToForm()" title="Agregar link">+</button>
+              </div>
+              <div class="link-preview" id="link-preview"></div>
+            </div>
+            <button class="btn-primary" onclick="addTask()">+ Registrar tarea</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- TIMER MANUAL -->
+        <div>
+          <div class="form-section-title">Log Manual de Tiempo</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="form-group">
+              <label class="form-label">Minutos invertidos</label>
+              <input class="form-input" type="number" id="log-mins" placeholder="45" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tarea</label>
+              <select class="form-select" id="log-task-select">
+                <option value="">— selecciona —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fecha</label>
+              <input class="form-input" type="date" id="log-date">
+            </div>
+            <button class="btn-primary" style="background:var(--surface);border:1px solid var(--border);color:var(--text);" onclick="logManual()">Registrar tiempo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOARD -->
+      <div class="task-board">
+        <div class="board-header">
+          <div class="board-title">Backlog activo</div>
+        </div>
+        <div class="filter-bar" id="filter-bar">
+          <div class="filter-chip active" onclick="setFilter('todos', this)">Todos</div>
+          <div class="filter-chip" onclick="setFilter('ventas', this)">Ventas</div>
+          <div class="filter-chip" onclick="setFilter('Cosmogonía', this)">Cosmogonía</div>
+          <div class="filter-chip" onclick="setFilter('Levering Trade', this)">Levering</div>
+          <div class="filter-chip" onclick="setFilter('urgente', this)">Urgentes</div>
+          <div class="filter-chip" onclick="setFilter('pendiente', this)">Pendientes</div>
+        </div>
+        <div id="task-list"></div>
+      </div>
+    </div>
+
+    <!-- TIMER BAR -->
+    <div class="timer-bar" id="timer-bar" style="display:none;">
+      <div class="timer-display" id="timer-display">00:00</div>
+      <div class="timer-task" id="timer-task-name">—</div>
+      <button class="btn-danger" onclick="stopTimer()">⏹ Detener</button>
+    </div>
+  </div>
+
+  <!-- ===== PANEL: REPORTE ===== -->
+  <div class="panel" id="panel-reporte">
+    <div class="report-layout reveal">
+      <div class="report-header">
+        <div>
+          <div class="report-title">Reporte de Tiempo</div>
+          <div class="report-subtitle" id="report-range">Cargando datos...</div>
+        </div>
+        <div class="period-btns">
+          <button class="period-btn active" onclick="setPeriod('semana',this)">Semana</button>
+          <button class="period-btn" onclick="setPeriod('mes',this)">Mes</button>
+          <button class="period-btn" onclick="setPeriod('todo',this)">Todo</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">TIEMPO TOTAL</div>
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-delta" id="kpi-total-sub" style="color:var(--muted)">horas registradas</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">TAREAS ACTIVAS</div>
+          <div class="kpi-value" id="kpi-tareas">—</div>
+          <div class="kpi-delta" id="kpi-tareas-sub" style="color:var(--muted)">en backlog</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">% VENTAS</div>
+          <div class="kpi-value" id="kpi-ventas-pct" style="color:var(--gold)">—</div>
+          <div class="kpi-delta" id="kpi-ventas-status">Meta: ≥30%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">COMPLETADAS</div>
+          <div class="kpi-value" id="kpi-done">—</div>
+          <div class="kpi-delta" id="kpi-done-sub" style="color:var(--muted)">esta semana</div>
+        </div>
+      </div>
+
+      <div class="two-cols">
+        <div class="chart-card">
+          <div class="chart-title">Tiempo por cliente</div>
+          <div class="bar-chart" id="chart-clientes"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Tiempo por categoría</div>
+          <div class="bar-chart" id="chart-categorias"></div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Log de tiempo reciente</div>
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Tarea</th>
+              <th>Cliente</th>
+              <th>Categoría</th>
+              <th>Fecha</th>
+              <th style="text-align:right">Tiempo</th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PANEL: VENTAS ===== -->
+  <div class="panel" id="panel-ventas">
+    <div class="sales-layout reveal">
+      <div class="sales-header">
+        <div>
+          <div style="font-size:16px;font-weight:500;color:var(--gold)">Dashboard de Ventas</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Tiempo en ventas = inversión, no gasto</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:24px;color:var(--gold)" id="sales-time-today">0 min</div>
+      </div>
+
+      <div class="sales-kpi-row">
+        <div class="sales-kpi">
+          <div class="sales-kpi-num" id="sk-semana">0h</div>
+          <div class="sales-kpi-label">HORAS EN VENTAS / SEM</div>
+          <div class="sales-kpi-sub">Meta recomendada: 8-10h</div>
+        </div>
+        <div class="sales-kpi">
+          <div class="sales-kpi-num" id="sk-tareas">0</div>
+          <div class="sales-kpi-label">TAREAS DE VENTAS ACTIVAS</div>
+          <div class="sales-kpi-sub">Backlog comercial</div>
+        </div>
+        <div class="sales-kpi">
+          <div class="sales-kpi-num" id="sk-pct">0%</div>
+          <div class="sales-kpi-label">% DEL TIEMPO TOTAL</div>
+          <div class="sales-kpi-sub" id="sk-pct-status">—</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Pipeline de seguimiento</div>
+        <div class="pipeline-stages">
+          <div class="pipeline-stage">
+            <div class="stage-name">Prospecto</div>
+            <div class="stage-count" id="pipe-0">0</div>
+            <div class="stage-label">contactos</div>
+          </div>
+          <div class="pipeline-stage">
+            <div class="stage-name">Contactado</div>
+            <div class="stage-count" id="pipe-1">0</div>
+            <div class="stage-label">en proceso</div>
+          </div>
+          <div class="pipeline-stage">
+            <div class="stage-name">Propuesta</div>
+            <div class="stage-count" id="pipe-2">0</div>
+            <div class="stage-label">enviadas</div>
+          </div>
+          <div class="pipeline-stage">
+            <div class="stage-name">Negociación</div>
+            <div class="stage-count" id="pipe-3">0</div>
+            <div class="stage-label">activas</div>
+          </div>
+          <div class="pipeline-stage">
+            <div class="stage-name">Cerrado</div>
+            <div class="stage-count" id="pipe-4">0</div>
+            <div class="stage-label">este mes</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--dim);font-family:var(--font-mono)">
+          Las etapas se alimentan de tareas con categoría "ventas" — agrega prospectos como tareas con proyecto = etapa del pipeline.
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Estrategias para eficientar el tiempo de ventas</div>
+        <div class="insight-list">
+          <div class="insight-item">
+            <div class="insight-icon" style="background:rgba(251,191,36,0.12)">⏰</div>
+            <div class="insight-body">
+              <div class="insight-title">Bloque intocable diario: 09:00–11:00</div>
+              <div class="insight-desc">Las primeras 2 horas del día para ventas antes de que la operación consuma la agenda. No agendar calls internos ni reuniones de proyecto en ese slot. La energía cognitiva es más alta en la mañana — úsala en persuadir, no en administrar.</div>
+            </div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon" style="background:rgba(45,212,191,0.12)">🔁</div>
+            <div class="insight-body">
+              <div class="insight-title">Batching de seguimientos: lunes y miércoles</div>
+              <div class="insight-desc">Agrupa todos los follow-ups en dos días fijos. Reduce el costo de "arranque mental" de retomar conversaciones dispersas y genera cadencia predecible para tus prospectos.</div>
+            </div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon" style="background:rgba(251,146,60,0.12)">📋</div>
+            <div class="insight-body">
+              <div class="insight-title">Script de 3 minutos para cada prospecto</div>
+              <div class="insight-desc">Antes de cualquier llamada: 1 dato del prospecto, 1 problema que resuelves, 1 pregunta de apertura. No improvises. El tiempo perdido en improvisar en ventas es el mayor ladrón de productividad comercial.</div>
+            </div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon" style="background:rgba(196,181,253,0.12)">📊</div>
+            <div class="insight-body">
+              <div class="insight-title">Mide actividad, no solo resultados</div>
+              <div class="insight-desc">Registra: llamadas hechas, propuestas enviadas, reuniones agendadas. Los resultados (cierres) son consecuencia — la actividad es lo que puedes controlar. Sin métrica de actividad, el reporte de ventas es solo una ilusión.</div>
+            </div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon" style="background:rgba(251,113,133,0.12)">⚡</div>
+            <div class="insight-body">
+              <div class="insight-title">Eliminación: delega o elimina antes de vender</div>
+              <div class="insight-desc">Cada tarea operativa que haces tú en lugar de delegarla le quita tiempo a ventas. Para cada tarea no-ventas pregunta: ¿puede hacerla alguien más? Si la respuesta es sí pero no lo has delegado, ese es tu problema de productividad real.</div>
+            </div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon" style="background:rgba(96,165,250,0.12)">🎯</div>
+            <div class="insight-body">
+              <div class="insight-title">ICP claro: Cosmogonía vs Levering, canales distintos</div>
+              <div class="insight-desc">Cosmogonía vende consultoría (ciclo largo, decisión de director); Levering vende a distribuidores (ciclo corto, decisión de compra). Mezclar los playbooks de ventas diluye la energía. Define semanas de foco por línea de negocio.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DETALLE DE TAREA -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" style="width:500px;max-height:88vh;overflow-y:auto;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;">
+      <div class="modal-title" id="modal-task-name" style="margin-bottom:0">—</div>
+      <button class="edit-btn" onclick="openEditModal(currentModalTaskId)" title="Editar tarea" style="flex-shrink:0;margin-top:2px;">✎</button>
+    </div>
+    <div style="font-size:12px;font-family:var(--font-mono);color:var(--muted);margin-bottom:14px;" id="modal-task-info"></div>
+
+    <!-- NOTES SECTION -->
+    <div class="notes-section">
+      <div class="notes-header">
+        <span>NOTAS DE AVANCE</span>
+      </div>
+      <div class="note-add-row">
+        <textarea id="modal-note-text" placeholder="Escribe un recordatorio, avance o comentario importante..."></textarea>
+        <button class="btn-note-add" onclick="addNoteFromModal()">+ Nota</button>
+      </div>
+      <div class="notes-list" id="modal-notes-list"></div>
+    </div>
+
+    <div class="divider" style="margin:14px 0;"></div>
+
+    <!-- LINKS -->
+    <div id="modal-links-section" style="display:none">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--dim);margin-bottom:8px;">ARCHIVOS Y LINKS</div>
+      <div class="modal-links" id="modal-links-list"></div>
+      <div class="divider" style="margin:12px 0;"></div>
+    </div>
+
+    <!-- TIME LOG -->
+    <div style="font-size:11px;font-family:var(--font-mono);color:var(--dim);margin-bottom:8px;">SESIONES REGISTRADAS</div>
+    <div class="modal-log" id="modal-log-list"></div>
+    <div style="font-size:12px;font-family:var(--font-mono);color:var(--accent);margin-bottom:16px;" id="modal-total-time"></div>
+
+    <!-- ADD LINK -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--dim);margin-bottom:8px;">AGREGAR LINK</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <input class="form-input" id="modal-link-label" placeholder="Nombre" style="width:35%;min-width:90px">
+        <input class="form-input" id="modal-link-url" placeholder="https://..." style="flex:1;min-width:120px">
+        <button class="link-add-btn" onclick="addLinkFromModal()" title="Agregar">+</button>
+      </div>
+    </div>
+
+    <button class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('open')">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR TAREA -->
+<div class="edit-modal-overlay" id="edit-modal-overlay" onclick="closeEditModal(event)">
+  <div class="edit-modal">
+    <div class="edit-modal-title">Editar tarea</div>
+    <div class="form-group">
+      <label class="form-label">Nombre de la tarea</label>
+      <input class="form-input" id="edit-titulo" placeholder="Nombre de la tarea">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cliente</label>
+      <div class="client-select-wrap" id="wrap-edit-cliente">
+        <button type="button" class="client-display-btn" id="btn-edit-cliente" onclick="toggleClientDropdown('edit-cliente')">
+          <span id="label-edit-cliente" style="display:flex;align-items:center;">
+            <span class="client-dot-inline" id="dot-edit-cliente" style="background:#c4b5fd"></span>
+            Cosmogonía
+          </span>
+          <span class="chevron">▼</span>
+        </button>
+        <input type="hidden" id="edit-cliente" value="Cosmogonía">
+        <div class="client-dropdown" id="dd-edit-cliente">
+          <div class="client-options-list" id="opts-edit-cliente"></div>
+          <div class="client-add-row">
+            <input type="text" id="new-client-name-edit" placeholder="Nuevo cliente..." onkeydown="if(event.key==='Enter')addClient('edit')">
+            <button class="client-add-btn" onclick="addClient('edit')" title="Agregar">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoría</label>
+      <select class="form-select" id="edit-categoria">
+        <option value="ventas">Ventas</option>
+        <option value="produccion">Producción</option>
+        <option value="consultoría">Consultoría</option>
+        <option value="admin">Admin / Ops</option>
+        <option value="estrategia">Estrategia</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Proyecto</label>
+      <input class="form-input" id="edit-proyecto" placeholder="Nombre del proyecto">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group">
+        <label class="form-label">Deadline</label>
+        <input class="form-input" type="date" id="edit-deadline">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prioridad</label>
+        <select class="form-select" id="edit-prioridad">
+          <option value="alta">Alta</option>
+          <option value="media">Media</option>
+          <option value="baja">Baja</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tiempo estimado (min)</label>
+      <input class="form-input" type="number" id="edit-tiempo" min="5" step="5">
+    </div>
+    <div class="edit-modal-actions">
+      <button class="btn-ghost" onclick="document.getElementById('edit-modal-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn-save" onclick="saveEdit()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- FOOTER QUICK ACCESS -->
+<div id="footer-bar" style="
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  background: rgba(2,6,23,0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255,198,41,0.1);
+  padding: 0 20px;
+  height: 48px;
+  display: flex; align-items: center; gap: 6px;
+">
+  <span style="font-size:9px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,198,41,0.4);margin-right:6px;white-space:nowrap;">ACCESOS</span>
+  <div id="footer-links" style="display:flex;gap:4px;flex:1;overflow-x:auto;align-items:center;scrollbar-width:none;">
+    <!-- Default links rendered by JS -->
+  </div>
+  <button onclick="openFooterEdit()" title="Administrar accesos" style="
+    background: rgba(255,198,41,0.07); border: 1px solid rgba(255,198,41,0.18);
+    border-radius: 6px; color: var(--cosmo); padding: 0 10px; height: 30px;
+    font-family:'Inter',sans-serif; font-size:11px; font-weight:500;
+    cursor:pointer; transition:background 0.15s; white-space:nowrap; flex-shrink:0;
+  " onmouseover="this.style.background='rgba(255,198,41,0.12)'"
+     onmouseout="this.style.background='rgba(255,198,41,0.07)'">+ Editar</button>
+</div>
+
+<!-- FOOTER EDIT MODAL -->
+<div id="footer-edit-overlay" onclick="closeFooterEdit(event)" style="
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;
+  display:none;align-items:center;justify-content:center;
+">
+  <div style="
+    background:rgba(2,6,23,0.97);backdrop-filter:blur(20px);
+    border:1px solid rgba(255,198,41,0.18);border-radius:16px;
+    padding:24px;width:440px;max-width:92vw;
+    display:flex;flex-direction:column;gap:14px;
+  ">
+    <div style="font-size:14px;font-weight:600;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:12px;">
+      Accesos rápidos del footer
+    </div>
+    <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);">LINKS GUARDADOS</div>
+    <div id="footer-saved-list" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;"></div>
+    <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:12px;">
+      <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">AGREGAR ACCESO</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <input id="fl-label" class="form-input" placeholder="Nombre (ej. Gmail)" style="width:38%;min-width:100px">
+        <input id="fl-url" class="form-input" placeholder="https://..." style="flex:1;min-width:120px">
+        <button onclick="addFooterLink()" style="
+          background:var(--cosmo);color:#000;border:none;border-radius:var(--r);
+          padding:8px 12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+          cursor:pointer;white-space:nowrap;transition:background 0.15s;
+        " onmouseover="this.style.background='#E6AC00'" onmouseout="this.style.background='#FFC629'">+ Agregar</button>
+      </div>
+    </div>
+    <button onclick="document.getElementById('footer-edit-overlay').style.display='none'" style="
+      background:none;border:1px solid rgba(255,255,255,0.1);border-radius:var(--r);
+      color:var(--muted);padding:9px;font-family:'Inter',sans-serif;font-size:13px;cursor:pointer;
+    ">Cerrar</button>
+  </div>
+</div>
+
+<script>
+
+// ============================================================
+// STATE
+// ============================================================
+let tasks = JSON.parse(localStorage.getItem('cosmo_tasks') || '[]');
+let timeLogs = JSON.parse(localStorage.getItem('cosmo_logs') || '[]');
+let activeTimer = null;
+let activeTaskId = null;
+let timerInterval = null;
+let currentFilter = 'todos';
+let currentPeriod = 'semana';
+let pendingLinks = [];
+let currentModalTaskId = null;
+let clients = JSON.parse(localStorage.getItem('cosmo_clients') || 'null') || [
+  { name: 'Cosmogonía', color: '#c4b5fd' },
+  { name: 'Levering Trade', color: '#FFC629' },
+  { name: 'Propio', color: '#60a5fa' },
+];
+const CLIENT_COLORS = ['#c4b5fd','#FFC629','#2dd4bf','#fb923c','#4ade80','#fb7185','#60a5fa','#f472b6','#a78bfa','#34d399'];
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  setTodayDate();
+  updateClock();
+  setInterval(updateClock, 1000);
+  renderClientOptions('in');
+  renderClientOptions('edit');
+  // Set default client display on load
+  const defaultClient = clients[0];
+  if (defaultClient) selectClient('in', defaultClient.name, defaultClient.color);
+  renderTasks();
+  updateLogTaskSelect();
+  updateReport();
+  updateSales();
+  if (tasks.length === 0) seedSampleData();
+}
+
+function setTodayDate() {
+  const t = new Date().toISOString().split('T')[0];
+  document.getElementById('in-deadline').value = t;
+  document.getElementById('log-date').value = t;
+}
+
+function updateClock() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    n.getHours().toString().padStart(2,'0') + ':' +
+    n.getMinutes().toString().padStart(2,'0');
+}
+
+function seedSampleData() {
+  const today = new Date();
+  const fmt = d => d.toISOString().split('T')[0];
+  const dd = (days) => { const d = new Date(); d.setDate(d.getDate()+days); return fmt(d); };
+
+  tasks = [
+    {id:'t1',titulo:'Propuesta Consultoría Q2',cliente:'Cosmogonía',categoria:'ventas',proyecto:'Nuevo cliente',deadline:dd(3),tiempo:90,prioridad:'alta',done:false,created:fmt(today)},
+    {id:'t2',titulo:'Revisar dashboard CMO Levering',cliente:'Levering Trade',categoria:'estrategia',proyecto:'Dashboard CMO',deadline:dd(5),tiempo:60,prioridad:'media',done:false,created:fmt(today)},
+    {id:'t3',titulo:'Follow-up distribuidor XSIL',cliente:'Levering Trade',categoria:'ventas',proyecto:'Canal B2B',deadline:dd(1),tiempo:30,prioridad:'alta',done:false,created:fmt(today)},
+    {id:'t4',titulo:'Actualizar catálogo Cosmogonía',cliente:'Cosmogonía',categoria:'produccion',proyecto:'Catálogo v3',deadline:dd(7),tiempo:120,prioridad:'baja',done:false,created:fmt(today)},
+    {id:'t5',titulo:'Reunión estratégica mensual',cliente:'Propio',categoria:'admin',proyecto:'Dirección',deadline:dd(2),tiempo:60,prioridad:'media',done:false,created:fmt(today)},
+  ];
+
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const twodago = new Date(); twodago.setDate(twodago.getDate()-2);
+
+  timeLogs = [
+    {taskId:'t1',mins:45,date:fmt(yesterday),cliente:'Cosmogonía',categoria:'ventas',titulo:'Propuesta Consultoría Q2'},
+    {taskId:'t3',mins:30,date:fmt(yesterday),cliente:'Levering Trade',categoria:'ventas',titulo:'Follow-up distribuidor XSIL'},
+    {taskId:'t2',mins:60,date:fmt(twodago),cliente:'Levering Trade',categoria:'estrategia',titulo:'Revisar dashboard CMO Levering'},
+    {taskId:'t4',mins:90,date:fmt(twodago),cliente:'Cosmogonía',categoria:'produccion',titulo:'Actualizar catálogo Cosmogonía'},
+    {taskId:'t5',mins:45,date:fmt(today),cliente:'Propio',categoria:'admin',titulo:'Reunión estratégica mensual'},
+  ];
+
+  saveData();
+  renderTasks();
+  updateLogTaskSelect();
+  updateReport();
+  updateSales();
+}
+
+function saveData() {
+  localStorage.setItem('cosmo_tasks', JSON.stringify(tasks));
+  localStorage.setItem('cosmo_logs', JSON.stringify(timeLogs));
+  localStorage.setItem('cosmo_clients', JSON.stringify(clients));
+}
+
+function addLinkToForm() {
+  const label = document.getElementById('in-link-label').value.trim();
+  const url = document.getElementById('in-link-url').value.trim();
+  if (!url) return;
+  const link = { label: label || url, url };
+  pendingLinks.push(link);
+  document.getElementById('in-link-label').value = '';
+  document.getElementById('in-link-url').value = '';
+  renderPendingLinks();
+}
+
+function renderPendingLinks() {
+  const preview = document.getElementById('link-preview');
+  preview.innerHTML = pendingLinks.map((l, i) =>
+    `<div class="link-chip">
+      <span class="link-chip-label">${l.label}</span>
+      <button class="link-chip-remove" onclick="pendingLinks.splice(${i},1);renderPendingLinks()">✕</button>
+    </div>`
+  ).join('');
+}
+
+// ============================================================
+// CLIENT MANAGER
+// ============================================================
+function getClientColor(name) {
+  const c = clients.find(c => c.name === name);
+  return c ? c.color : '#888797';
+}
+
+function renderClientOptions(context) {
+  // context = 'in' | 'edit'
+  const list = document.getElementById('opts-' + context + '-cliente');
+  const current = document.getElementById(context + '-cliente').value;
+  if (!list) return;
+  list.innerHTML = clients.map((c, i) => `
+    <div class="client-option ${c.name === current ? 'selected' : ''}"
+         onclick="selectClient('${context}','${c.name.replace(/'/g,"\'")}','${c.color}')">
+      <div class="client-option-dot" style="background:${c.color}"></div>
+      <span class="client-option-name">${c.name}</span>
+      ${i >= 3 ? `<button class="client-option-del" onclick="event.stopPropagation();deleteClient(${i},'${context}')" title="Eliminar">✕</button>` : ''}
+    </div>
+  `).join('');
+}
+
+function toggleClientDropdown(context) {
+  const dd = document.getElementById('dd-' + context);
+  const btn = document.getElementById('btn-' + context);
+  const isOpen = dd.classList.contains('open');
+  // Close all dropdowns first
+  document.querySelectorAll('.client-dropdown').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.client-display-btn').forEach(b => b.classList.remove('open'));
+  if (!isOpen) {
+    renderClientOptions(context.replace('-cliente',''));
+    dd.classList.add('open');
+    btn.classList.add('open');
+  }
+}
+
+function selectClient(context, name, color) {
+  document.getElementById(context + '-cliente').value = name;
+  const dot = document.getElementById('dot-' + context + '-cliente');
+  const label = document.getElementById('label-' + context + '-cliente');
+  if (dot) dot.style.background = color;
+  if (label) label.innerHTML = `<span class="client-dot-inline" id="dot-${context}-cliente" style="background:${color}"></span>${name}`;
+  const dd = document.getElementById('dd-' + context + '-cliente');
+  const btn = document.getElementById('btn-' + context + '-cliente');
+  if (dd) dd.classList.remove('open');
+  if (btn) btn.classList.remove('open');
+}
+
+function addClient(context) {
+  const input = document.getElementById('new-client-name-' + context);
+  const name = input.value.trim();
+  if (!name) return;
+  if (clients.find(c => c.name.toLowerCase() === name.toLowerCase())) {
+    input.value = '';
+    return;
+  }
+  const color = CLIENT_COLORS[clients.length % CLIENT_COLORS.length];
+  clients.push({ name, color });
+  saveData();
+  input.value = '';
+  renderClientOptions(context);
+  renderFilterBar();
+  selectClient(context, name, color);
+}
+
+function deleteClient(index, context) {
+  if (!confirm('¿Eliminar este cliente? Las tareas existentes conservarán el nombre.')) return;
+  clients.splice(index, 1);
+  saveData();
+  renderClientOptions(context);
+  renderFilterBar();
+}
+
+function renderFilterBar() {
+  const bar = document.getElementById('filter-bar');
+  const customClients = clients.slice(3);
+  const extraChips = customClients.map(c =>
+    `<div class="filter-chip" onclick="setFilter('${c.name.replace(/'/g,"\'")}', this)">${c.name}</div>`
+  ).join('');
+  bar.innerHTML = `
+    <div class="filter-chip active" onclick="setFilter('todos', this)">Todos</div>
+    <div class="filter-chip" onclick="setFilter('ventas', this)">Ventas</div>
+    <div class="filter-chip" onclick="setFilter('Cosmogonía', this)">Cosmogonía</div>
+    <div class="filter-chip" onclick="setFilter('Levering Trade', this)">Levering</div>
+    <div class="filter-chip" onclick="setFilter('urgente', this)">Urgentes</div>
+    <div class="filter-chip" onclick="setFilter('pendiente', this)">Pendientes</div>
+    ${extraChips}
+  `;
+  // Re-apply active filter
+  const chips = bar.querySelectorAll('.filter-chip');
+  chips.forEach(chip => {
+    if (chip.textContent.trim() === currentFilter ||
+       (currentFilter === 'todos' && chip.textContent.trim() === 'Todos')) {
+      chip.classList.add('active');
+    }
+  });
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.client-select-wrap')) {
+    document.querySelectorAll('.client-dropdown').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.client-display-btn').forEach(b => b.classList.remove('open'));
+  }
+});
+
+// ============================================================
+// TASKS
+// ============================================================
+function addTask() {
+  const titulo = document.getElementById('in-titulo').value.trim();
+  if (!titulo) { alert('Escribe el nombre de la tarea'); return; }
+
+  const task = {
+    id: 'task_' + Date.now(),
+    titulo,
+    cliente: document.getElementById('in-cliente').value,
+    categoria: document.getElementById('in-categoria').value,
+    proyecto: document.getElementById('in-proyecto').value || '—',
+    deadline: document.getElementById('in-deadline').value,
+    tiempo: parseInt(document.getElementById('in-tiempo').value) || 60,
+    prioridad: document.getElementById('in-prioridad').value,
+    links: [...pendingLinks],
+    done: false,
+    created: new Date().toISOString().split('T')[0],
+  };
+
+  tasks.unshift(task);
+  pendingLinks = [];
+  document.getElementById('link-preview').innerHTML = '';
+  saveData();
+  renderTasks();
+  updateLogTaskSelect();
+  updateReport();
+  updateSales();
+  document.getElementById('in-titulo').value = '';
+  document.getElementById('in-proyecto').value = '';
+  document.getElementById('in-link-label').value = '';
+  document.getElementById('in-link-url').value = '';
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderTasks();
+}
+
+function renderTasks() {
+  const container = document.getElementById('task-list');
+  let filtered = tasks;
+
+  if (currentFilter === 'ventas') filtered = tasks.filter(t => t.categoria === 'ventas');
+  else if (currentFilter === 'Cosmogonía') filtered = tasks.filter(t => t.cliente === 'Cosmogonía');
+  else if (currentFilter === 'Levering Trade') filtered = tasks.filter(t => t.cliente === 'Levering Trade');
+  else if (currentFilter === 'urgente') filtered = tasks.filter(t => daysUntil(t.deadline) <= 2 && !t.done);
+  else if (currentFilter === 'pendiente') filtered = tasks.filter(t => !t.done);
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">□</div><div class="empty-state-text">Sin tareas en esta vista</div></div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(t => renderTaskCard(t)).join('');
+}
+
+function renderTaskCard(t) {
+  const days = daysUntil(t.deadline);
+  const dlClass = days < 0 ? 'urgent' : days <= 2 ? 'soon' : '';
+  const dlText = t.deadline ? (days < 0 ? `Vencida hace ${Math.abs(days)}d` : days === 0 ? 'Hoy' : `${days}d`) : '—';
+  const catTag = getCatTag(t.categoria);
+  const clientTag = getClientTag(t.cliente);
+  const loggedMins = getLoggedMins(t.id);
+  const loggedDisp = loggedMins > 0 ? `${loggedMins}min` : '';
+  const isRunning = activeTaskId === t.id;
+  const linksHtml = (t.links && t.links.length > 0)
+    ? t.links.map(l => `<a class="task-link-btn" href="${l.url}" target="_blank" onclick="event.stopPropagation()">↗ ${l.label || 'Archivo'}</a>`).join('')
+    : '';
+
+  return `
+  <div class="task-card ${t.done ? 'done' : ''}" id="card-${t.id}">
+    <div class="task-check ${t.done ? 'checked' : ''}" onclick="toggleDone('${t.id}')"></div>
+    <div class="task-body" onclick="showTaskModal('${t.id}')">
+      <div class="task-title">${t.titulo}</div>
+      <div class="task-meta">
+        <span class="task-tag ${clientTag}" ${getClientTagStyle(t.cliente)}>${t.cliente}</span>
+        <span class="task-tag ${catTag}">${t.categoria}</span>
+        ${t.proyecto !== '—' ? `<span class="task-tag tag-default">${t.proyecto}</span>` : ''}
+        <span class="deadline-text ${dlClass}">${dlText}</span>
+        ${loggedDisp ? `<span style="font-family:var(--font-mono);font-size:10px;color:var(--teal)">▸ ${loggedDisp}</span>` : ''}
+        ${linksHtml}
+        ${(t.notes && t.notes.length > 0) ? `<span class="task-note-badge">✎ ${t.notes.length}</span>` : ''}
+      </div>
+    </div>
+    <div class="task-actions">
+      <button class="timer-btn ${isRunning ? 'running' : ''}" onclick="toggleTimer('${t.id}','${t.titulo.replace(/'/g, "\\'")}')">
+        ${isRunning ? '⏸' : '▶'}
+      </button>
+      <button class="edit-btn" onclick="openEditModal('${t.id}')" title="Editar tarea">✎</button>
+      <button class="timer-btn" onclick="deleteTask('${t.id}')" style="color:var(--dim);">✕</button>
+    </div>
+  </div>`;
+}
+
+
+function getCatTag(c) {
+  const map = {ventas:'tag-ventas',produccion:'tag-produccion',admin:'tag-admin',consultoría:'tag-cosmogonia',estrategia:'tag-levering'};
+  return map[c] || 'tag-default';
+}
+
+function getClientTag(c) {
+  if (c === 'Cosmogonía') return 'tag-cosmogonia';
+  if (c === 'Levering Trade') return 'tag-levering';
+  if (c === 'Propio') return 'tag-admin';
+  return 'tag-default';
+}
+
+function getClientTagStyle(c) {
+  const client = clients.find(cl => cl.name === c);
+  if (!client || ['Cosmogonía','Levering Trade','Propio'].includes(c)) return '';
+  const col = client.color;
+  return `style="background:${col}18;color:${col};border:1px solid ${col}35;"`;
+}
+
+function daysUntil(dl) {
+  if (!dl) return 99;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dl + 'T00:00:00');
+  return Math.round((d - today) / 86400000);
+}
+
+function getLoggedMins(id) {
+  return timeLogs.filter(l => l.taskId === id).reduce((a,b) => a + b.mins, 0);
+}
+
+function toggleDone(id) {
+  const t = tasks.find(t => t.id === id);
+  if (t) { t.done = !t.done; saveData(); renderTasks(); updateReport(); updateSales(); }
+}
+
+function deleteTask(id) {
+  if (!confirm('¿Eliminar esta tarea?')) return;
+  tasks = tasks.filter(t => t.id !== id);
+  timeLogs = timeLogs.filter(l => l.taskId !== id);
+  saveData(); renderTasks(); updateLogTaskSelect(); updateReport(); updateSales();
+}
+
+// ============================================================
+// TIMER
+// ============================================================
+function toggleTimer(id, name) {
+  if (activeTaskId === id) { stopTimer(); return; }
+  if (activeTaskId) stopTimer();
+  activeTaskId = id;
+  activeTimer = Date.now();
+  document.getElementById('timer-bar').style.display = 'flex';
+  document.getElementById('timer-task-name').textContent = name;
+  timerInterval = setInterval(updateTimerDisplay, 1000);
+  renderTasks();
+}
+
+function updateTimerDisplay() {
+  if (!activeTimer) return;
+  const secs = Math.floor((Date.now() - activeTimer) / 1000);
+  const m = Math.floor(secs / 60).toString().padStart(2,'0');
+  const s = (secs % 60).toString().padStart(2,'0');
+  document.getElementById('timer-display').textContent = m + ':' + s;
+}
+
+function stopTimer() {
+  if (!activeTimer) return;
+  const mins = Math.round((Date.now() - activeTimer) / 60000);
+  if (mins >= 1) {
+    const task = tasks.find(t => t.id === activeTaskId);
+    if (task) {
+      timeLogs.push({
+        taskId: activeTaskId,
+        mins,
+        date: new Date().toISOString().split('T')[0],
+        cliente: task.cliente,
+        categoria: task.categoria,
+        titulo: task.titulo
+      });
+      saveData();
+    }
+  }
+  clearInterval(timerInterval);
+  activeTimer = null;
+  activeTaskId = null;
+  document.getElementById('timer-bar').style.display = 'none';
+  document.getElementById('timer-display').textContent = '00:00';
+  renderTasks();
+  updateReport();
+  updateSales();
+}
+
+// ============================================================
+// MANUAL LOG
+// ============================================================
+function updateLogTaskSelect() {
+  const sel = document.getElementById('log-task-select');
+  const active = tasks.filter(t => !t.done);
+  sel.innerHTML = '<option value="">— selecciona —</option>' +
+    active.map(t => `<option value="${t.id}">${t.titulo} (${t.cliente})</option>`).join('');
+}
+
+function logManual() {
+  const mins = parseInt(document.getElementById('log-mins').value);
+  const taskId = document.getElementById('log-task-select').value;
+  const date = document.getElementById('log-date').value;
+  if (!mins || !taskId || !date) { alert('Completa todos los campos'); return; }
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  timeLogs.push({ taskId, mins, date, cliente: task.cliente, categoria: task.categoria, titulo: task.titulo });
+  saveData();
+  updateReport();
+  updateSales();
+  document.getElementById('log-mins').value = '';
+  renderTasks();
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function showTaskModal(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  currentModalTaskId = id;
+  const logs = timeLogs.filter(l => l.taskId === id);
+  const total = logs.reduce((a,b) => a + b.mins, 0);
+  document.getElementById('modal-task-name').textContent = task.titulo;
+  document.getElementById('modal-task-info').textContent =
+    `${task.cliente} · ${task.categoria} · ${task.proyecto}`;
+
+  renderModalNotes(task);
+  renderModalLinks(task);
+
+  const logEl = document.getElementById('modal-log-list');
+  if (logs.length === 0) {
+    logEl.innerHTML = '<div style="font-size:12px;color:var(--dim);font-family:var(--font-mono);padding:8px 0">Sin tiempo registrado</div>';
+  } else {
+    logEl.innerHTML = logs.map(l =>
+      `<div class="modal-log-row"><span class="modal-log-date">${l.date}</span><span class="modal-log-mins">${l.mins} min</span></div>`
+    ).join('');
+  }
+  document.getElementById('modal-total-time').textContent = `Total: ${total} minutos`;
+  document.getElementById('modal-link-label').value = '';
+  document.getElementById('modal-link-url').value = '';
+  document.getElementById('modal-note-text').value = '';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function renderModalNotes(task) {
+  const notes = task.notes || [];
+  const list = document.getElementById('modal-notes-list');
+  if (notes.length === 0) {
+    list.innerHTML = '<div class="notes-empty">Sin notas aún</div>';
+    return;
+  }
+  list.innerHTML = [...notes].reverse().map((n, ri) => {
+    const i = notes.length - 1 - ri;
+    return `<div class="note-item">
+      <div class="note-text">${escHtml(n.text)}</div>
+      <div class="note-date">${n.date}${n.time ? ' · ' + n.time : ''}</div>
+      <button class="note-del" onclick="deleteNote('${task.id}',${i})" title="Eliminar nota">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function addNoteFromModal() {
+  const text = document.getElementById('modal-note-text').value.trim();
+  if (!text) return;
+  const task = tasks.find(t => t.id === currentModalTaskId);
+  if (!task) return;
+  if (!task.notes) task.notes = [];
+  const now = new Date();
+  task.notes.push({
+    text,
+    date: now.toISOString().split('T')[0],
+    time: now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'),
+  });
+  saveData();
+  renderModalNotes(task);
+  renderTasks();
+  document.getElementById('modal-note-text').value = '';
+}
+
+function deleteNote(taskId, index) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task || !task.notes) return;
+  task.notes.splice(index, 1);
+  saveData();
+  renderModalNotes(task);
+  renderTasks();
+}
+
+function renderModalLinks(task) {
+  const links = task.links || [];
+  const section = document.getElementById('modal-links-section');
+  const list = document.getElementById('modal-links-list');
+  if (links.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = links.map((l, i) => {
+    const icon = getUrlIcon(l.url);
+    return `<div class="modal-link-item">
+      <span class="modal-link-icon">${icon}</span>
+      <span class="modal-link-label">${l.label || l.url}</span>
+      <a class="modal-link-open" href="${l.url}" target="_blank">↗ Abrir</a>
+      <button class="link-chip-remove" onclick="removeLinkFromTask('${task.id}',${i})" title="Eliminar">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function getUrlIcon(url) {
+  if (!url) return '📄';
+  const u = url.toLowerCase();
+  if (u.includes('docs.google') || u.includes('drive.google')) return '📄';
+  if (u.includes('sheets.google') || u.includes('xlsx')) return '📊';
+  if (u.includes('slides.google') || u.includes('pptx')) return '📑';
+  if (u.includes('notion.so')) return '◻';
+  if (u.includes('figma.com')) return '✏';
+  if (u.includes('canva.com')) return '🎨';
+  if (u.includes('github.com') || u.includes('gitlab')) return '⌥';
+  if (u.includes('slack.com')) return '💬';
+  if (u.includes('zoom.us') || u.includes('meet.google')) return '📹';
+  return '🔗';
+}
+
+function addLinkFromModal() {
+  const label = document.getElementById('modal-link-label').value.trim();
+  const url = document.getElementById('modal-link-url').value.trim();
+  if (!url) return;
+  const task = tasks.find(t => t.id === currentModalTaskId);
+  if (!task) return;
+  if (!task.links) task.links = [];
+  task.links.push({ label: label || url, url });
+  saveData();
+  renderModalLinks(task);
+  renderTasks();
+  document.getElementById('modal-link-label').value = '';
+  document.getElementById('modal-link-url').value = '';
+}
+
+function removeLinkFromTask(taskId, index) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task || !task.links) return;
+  task.links.splice(index, 1);
+  saveData();
+  renderModalLinks(task);
+  renderTasks();
+}
+
+function closeModal(e) {
+  if (e.target.id === 'modal-overlay') document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function openEditModal(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  currentModalTaskId = id;
+  document.getElementById('edit-titulo').value = task.titulo;
+  const clientColor = getClientColor(task.cliente);
+  selectClient('edit', task.cliente, clientColor);
+  document.getElementById('edit-categoria').value = task.categoria;
+  document.getElementById('edit-proyecto').value = task.proyecto !== '—' ? task.proyecto : '';
+  document.getElementById('edit-deadline').value = task.deadline || '';
+  document.getElementById('edit-prioridad').value = task.prioridad || 'media';
+  document.getElementById('edit-tiempo').value = task.tiempo || 60;
+  document.getElementById('edit-modal-overlay').classList.add('open');
+}
+
+function closeEditModal(e) {
+  if (e.target.id === 'edit-modal-overlay') document.getElementById('edit-modal-overlay').classList.remove('open');
+}
+
+function saveEdit() {
+  const task = tasks.find(t => t.id === currentModalTaskId);
+  if (!task) return;
+  const newTitulo = document.getElementById('edit-titulo').value.trim();
+  if (!newTitulo) { alert('El nombre no puede estar vacío'); return; }
+  task.titulo = newTitulo;
+  task.cliente = document.getElementById('edit-cliente').value;
+  task.categoria = document.getElementById('edit-categoria').value;
+  task.proyecto = document.getElementById('edit-proyecto').value.trim() || '—';
+  task.deadline = document.getElementById('edit-deadline').value;
+  task.prioridad = document.getElementById('edit-prioridad').value;
+  task.tiempo = parseInt(document.getElementById('edit-tiempo').value) || 60;
+  saveData();
+  renderTasks();
+  updateLogTaskSelect();
+  updateReport();
+  updateSales();
+  document.getElementById('edit-modal-overlay').classList.remove('open');
+  // Refresh main modal title if open
+  if (document.getElementById('modal-overlay').classList.contains('open')) {
+    document.getElementById('modal-task-name').textContent = task.titulo;
+    document.getElementById('modal-task-info').textContent =
+      `${task.cliente} · ${task.categoria} · ${task.proyecto}`;
+  }
+}
+
+// ============================================================
+// REPORTE
+// ============================================================
+function setPeriod(p, el) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  updateReport();
+}
+
+function getFilteredLogs() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  return timeLogs.filter(l => {
+    const d = new Date(l.date + 'T00:00:00');
+    if (currentPeriod === 'semana') {
+      const start = new Date(today); start.setDate(today.getDate() - today.getDay());
+      return d >= start;
+    }
+    if (currentPeriod === 'mes') {
+      return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+    }
+    return true;
+  });
+}
+
+function updateReport() {
+  const logs = getFilteredLogs();
+  const totalMins = logs.reduce((a,b) => a + b.mins, 0);
+  const ventasMins = logs.filter(l => l.categoria === 'ventas').reduce((a,b) => a + b.mins, 0);
+  const ventasPct = totalMins > 0 ? Math.round(ventasMins / totalMins * 100) : 0;
+  const activeTasks = tasks.filter(t => !t.done).length;
+  const doneTasks = tasks.filter(t => t.done).length;
+
+  document.getElementById('kpi-total').textContent = (totalMins / 60).toFixed(1) + 'h';
+  document.getElementById('kpi-tareas').textContent = activeTasks;
+  document.getElementById('kpi-ventas-pct').textContent = ventasPct + '%';
+  document.getElementById('kpi-done').textContent = doneTasks;
+
+  const vpStatus = document.getElementById('kpi-ventas-status');
+  if (ventasPct >= 30) { vpStatus.textContent = '✓ Cumpliendo meta'; vpStatus.className = 'kpi-delta delta-up'; }
+  else { vpStatus.textContent = `↑ Faltan ${30 - ventasPct}pp`; vpStatus.className = 'kpi-delta delta-down'; }
+
+  // Charts
+  const clientes = {}; const cats = {};
+  logs.forEach(l => {
+    clientes[l.cliente] = (clientes[l.cliente] || 0) + l.mins;
+    cats[l.categoria] = (cats[l.categoria] || 0) + l.mins;
+  });
+
+  const clientColors = { 'Cosmogonía':'#c4b5fd','Levering Trade':'#fbbf24','Propio':'#60a5fa','Otro':'#4ade80' };
+  const catColors = { ventas:'#fb923c',produccion:'#2dd4bf',consultoría:'#c4b5fd',admin:'#60a5fa',estrategia:'#fbbf24',estratégia:'#fbbf24' };
+
+  renderBarChart('chart-clientes', clientes, clientColors, totalMins);
+  renderBarChart('chart-categorias', cats, catColors, totalMins);
+
+  // Log table
+  const tbody = document.getElementById('log-tbody');
+  const recent = [...logs].sort((a,b) => b.date.localeCompare(a.date)).slice(0,10);
+  tbody.innerHTML = recent.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:20px;font-family:var(--font-mono)">Sin registros</td></tr>'
+    : recent.map(l => `
+      <tr>
+        <td>${l.titulo}</td>
+        <td style="color:var(--muted)">${l.cliente}</td>
+        <td><span class="task-tag ${getCatTag(l.categoria)}" style="font-size:10px">${l.categoria}</span></td>
+        <td style="font-family:var(--font-mono)">${l.date}</td>
+        <td style="text-align:right;font-family:var(--font-mono);color:var(--accent)">${l.mins} min</td>
+      </tr>`).join('');
+
+  const labels = {semana:'Esta semana',mes:'Este mes',todo:'Todo el tiempo'};
+  document.getElementById('report-range').textContent = `${labels[currentPeriod]} · ${logs.length} sesiones · ${(totalMins/60).toFixed(1)}h total`;
+}
+
+function renderBarChart(id, data, colors, total) {
+  const el = document.getElementById(id);
+  if (Object.keys(data).length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--dim);font-family:var(--font-mono);">Sin datos</div>';
+    return;
+  }
+  const sorted = Object.entries(data).sort((a,b) => b[1]-a[1]);
+  el.innerHTML = sorted.map(([k,v]) => {
+    const pct = total > 0 ? Math.round(v / total * 100) : 0;
+    const color = colors[k] || '#888797';
+    return `
+    <div class="bar-row">
+      <div class="bar-label">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="bar-value">${Math.round(v/60*10)/10}h</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// VENTAS
+// ============================================================
+function updateSales() {
+  const ventasTareas = tasks.filter(t => t.categoria === 'ventas' && !t.done);
+  document.getElementById('sk-tareas').textContent = ventasTareas.length;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = today.toISOString().split('T')[0];
+
+  const startW = new Date(today); startW.setDate(today.getDate() - today.getDay());
+  const startWStr = startW.toISOString().split('T')[0];
+
+  const todayLogs = timeLogs.filter(l => l.date === todayStr && l.categoria === 'ventas');
+  const weekLogs = timeLogs.filter(l => l.date >= startWStr && l.categoria === 'ventas');
+  const allWeekLogs = timeLogs.filter(l => l.date >= startWStr);
+
+  const todayMins = todayLogs.reduce((a,b) => a + b.mins, 0);
+  const weekMins = weekLogs.reduce((a,b) => a + b.mins, 0);
+  const totalWeekMins = allWeekLogs.reduce((a,b) => a + b.mins, 0);
+  const pct = totalWeekMins > 0 ? Math.round(weekMins / totalWeekMins * 100) : 0;
+
+  document.getElementById('sales-time-today').textContent = todayMins + ' min hoy';
+  document.getElementById('sk-semana').textContent = (weekMins / 60).toFixed(1) + 'h';
+  document.getElementById('sk-pct').textContent = pct + '%';
+
+  const statusEl = document.getElementById('sk-pct-status');
+  if (pct >= 30) { statusEl.textContent = '✓ En objetivo'; statusEl.style.color = 'var(--green)'; }
+  else { statusEl.textContent = `Meta: ≥30% del tiempo`; statusEl.style.color = 'var(--dim)'; }
+
+  // Pipeline: cuenta tareas ventas por proyecto
+  const stages = ['Prospecto','Contactado','Propuesta','Negociación','Cerrado'];
+  stages.forEach((s, i) => {
+    const count = ventasTareas.filter(t => t.proyecto && t.proyecto.toLowerCase().includes(s.toLowerCase())).length;
+    document.getElementById(`pipe-${i}`).textContent = count;
+  });
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPanel(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (name === 'reporte') updateReport();
+  if (name === 'ventas') updateSales();
+}
+
+// ============================================================
+// FOOTER QUICK LINKS
+// ============================================================
+const DEFAULT_FOOTER_LINKS = [
+  { label: 'Google Calendar', url: 'https://calendar.google.com', icon: '📅' },
+  { label: 'Gmail', url: 'https://mail.google.com', icon: '✉' },
+  { label: 'Drive', url: 'https://drive.google.com', icon: '💾' },
+];
+
+let footerLinks = JSON.parse(localStorage.getItem('cosmo_footer_links') || 'null') || [...DEFAULT_FOOTER_LINKS];
+
+function saveFooterLinks() {
+  localStorage.setItem('cosmo_footer_links', JSON.stringify(footerLinks));
+}
+
+function renderFooterLinks() {
+  const container = document.getElementById('footer-links');
+  container.innerHTML = footerLinks.map((l, i) => `
+    <a href="${l.url}" target="_blank" style="
+      display:inline-flex;align-items:center;gap:5px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:6px;padding:0 10px;height:30px;
+      font-family:'Inter',sans-serif;font-size:11px;font-weight:400;
+      color:var(--muted);text-decoration:none;white-space:nowrap;
+      transition:all 0.18s;flex-shrink:0;
+    "
+    onmouseover="this.style.borderColor='rgba(255,198,41,0.3)';this.style.color='var(--cosmo)';this.style.background='rgba(255,198,41,0.06)'"
+    onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='var(--muted)';this.style.background='rgba(255,255,255,0.04)'"
+    >${l.icon || '🔗'} ${l.label}</a>
+  `).join('');
+}
+
+function renderFooterSavedList() {
+  const list = document.getElementById('footer-saved-list');
+  if (footerLinks.length === 0) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--dim);font-family:Inter,sans-serif;">Sin accesos guardados</div>';
+    return;
+  }
+  list.innerHTML = footerLinks.map((l, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
+      <span style="font-size:14px;">${l.icon || '🔗'}</span>
+      <span style="flex:1;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.label}</span>
+      <a href="${l.url}" target="_blank" style="font-size:10px;color:var(--teal);text-decoration:none;padding:2px 6px;border:1px solid rgba(45,212,191,0.2);border-radius:4px;">↗</a>
+      <button onclick="removeFooterLink(${i})" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;padding:2px 4px;transition:color 0.15s;" onmouseover="this.style.color='var(--coral)'" onmouseout="this.style.color='var(--dim)'">✕</button>
+    </div>
+  `).join('');
+}
+
+function addFooterLink() {
+  const label = document.getElementById('fl-label').value.trim();
+  const url = document.getElementById('fl-url').value.trim();
+  if (!label || !url) return;
+  const icon = getUrlIcon(url);
+  footerLinks.push({ label, url, icon });
+  saveFooterLinks();
+  renderFooterLinks();
+  renderFooterSavedList();
+  document.getElementById('fl-label').value = '';
+  document.getElementById('fl-url').value = '';
+}
+
+function removeFooterLink(i) {
+  footerLinks.splice(i, 1);
+  saveFooterLinks();
+  renderFooterLinks();
+  renderFooterSavedList();
+}
+
+function openFooterEdit() {
+  renderFooterSavedList();
+  document.getElementById('footer-edit-overlay').style.display = 'flex';
+}
+
+function closeFooterEdit(e) {
+  if (e.target.id === 'footer-edit-overlay')
+    document.getElementById('footer-edit-overlay').style.display = 'none';
+}
+
+// ============================================================
+// START
+// ============================================================
+init();
+renderFooterLinks();
+</script>
+
+</body>
+</html>
