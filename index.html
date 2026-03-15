@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>COSMO OS — Sistema de Gestión</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1375,10 +1376,16 @@
 <script>
 
 // ============================================================
+// SUPABASE
+// ============================================================
+const SUPA_URL = 'https://zpzsbyrzhicjzuutuaun.supabase.co';
+const SUPA_KEY = 'sb_publishable_1cUdzezBZVUsVbIP0mVZBQ_Lm39q1ES';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
 // STATE
 // ============================================================
-let tasks = JSON.parse(localStorage.getItem('cosmo_tasks') || '[]');
-let timeLogs = JSON.parse(localStorage.getItem('cosmo_logs') || '[]');
+let tasks = [];
+let timeLogs = [];
 let activeTimer = null;
 let activeTaskId = null;
 let timerInterval = null;
@@ -1386,7 +1393,8 @@ let currentFilter = 'todos';
 let currentPeriod = 'semana';
 let pendingLinks = [];
 let currentModalTaskId = null;
-let clients = JSON.parse(localStorage.getItem('cosmo_clients') || 'null') || [
+let dbReady = false;
+let clients = [
   { name: 'Cosmogonía', color: '#c4b5fd' },
   { name: 'Levering Trade', color: '#FFC629' },
   { name: 'Propio', color: '#60a5fa' },
@@ -1396,19 +1404,44 @@ const CLIENT_COLORS = ['#c4b5fd','#FFC629','#2dd4bf','#fb923c','#4ade80','#fb718
 // ============================================================
 // INIT
 // ============================================================
-function init() {
+function showLoadingState() {
+  const tl = document.getElementById('task-list');
+  if (tl) tl.innerHTML = '<div class="empty-state"><div class="empty-state-icon" style="animation:pulse 1s infinite">◌</div><div class="empty-state-text">Cargando datos...</div></div>';
+}
+
+async function init() {
   setTodayDate();
   updateClock();
   setInterval(updateClock, 1000);
-  renderClientOptions('in');
-  renderClientOptions('edit');
-  // Set default client display on load
-  const defaultClient = clients[0];
-  if (defaultClient) selectClient('in', defaultClient.name, defaultClient.color);
+  showLoadingState();
+
+  // Load all data from Supabase in parallel
+  try {
+    const [loadedTasks, loadedLogs, loadedFooter] = await Promise.all([
+      dbLoad('tasks'),
+      dbLoad('time_logs'),
+      dbLoad('footer_links'),
+    ]);
+    tasks = loadedTasks;
+    timeLogs = loadedLogs;
+    if (loadedFooter.length > 0) {
+      footerLinks = loadedFooter;
+    }
+    dbReady = true;
+  } catch(e) {
+    console.error('Error loading from Supabase:', e);
+    dbReady = true;
+  }
+
+  if (typeof renderClientOptions === 'function') {
+    renderClientOptions('in');
+    renderClientOptions('edit');
+  }
   renderTasks();
   updateLogTaskSelect();
   updateReport();
   updateSales();
+  renderFooterLinks();
   if (tasks.length === 0) seedSampleData();
 }
 
@@ -1442,25 +1475,60 @@ function seedSampleData() {
   const twodago = new Date(); twodago.setDate(twodago.getDate()-2);
 
   timeLogs = [
-    {taskId:'t1',mins:45,date:fmt(yesterday),cliente:'Cosmogonía',categoria:'ventas',titulo:'Propuesta Consultoría Q2'},
-    {taskId:'t3',mins:30,date:fmt(yesterday),cliente:'Levering Trade',categoria:'ventas',titulo:'Follow-up distribuidor XSIL'},
-    {taskId:'t2',mins:60,date:fmt(twodago),cliente:'Levering Trade',categoria:'estrategia',titulo:'Revisar dashboard CMO Levering'},
-    {taskId:'t4',mins:90,date:fmt(twodago),cliente:'Cosmogonía',categoria:'produccion',titulo:'Actualizar catálogo Cosmogonía'},
-    {taskId:'t5',mins:45,date:fmt(today),cliente:'Propio',categoria:'admin',titulo:'Reunión estratégica mensual'},
+    {id:'lg1',taskId:'t1',mins:45,date:fmt(yesterday),cliente:'Cosmogonía',categoria:'ventas',titulo:'Propuesta Consultoría Q2'},
+    {id:'lg2',taskId:'t3',mins:30,date:fmt(yesterday),cliente:'Levering Trade',categoria:'ventas',titulo:'Follow-up distribuidor XSIL'},
+    {id:'lg3',taskId:'t2',mins:60,date:fmt(twodago),cliente:'Levering Trade',categoria:'estrategia',titulo:'Revisar dashboard CMO Levering'},
+    {id:'lg4',taskId:'t4',mins:90,date:fmt(twodago),cliente:'Cosmogonía',categoria:'produccion',titulo:'Actualizar catálogo Cosmogonía'},
+    {id:'lg5',taskId:'t5',mins:45,date:fmt(today),cliente:'Propio',categoria:'admin',titulo:'Reunión estratégica mensual'},
   ];
 
-  saveData();
+  tasks.forEach(t => saveTask(t));
+  timeLogs.forEach(l => saveLog(l));
   renderTasks();
   updateLogTaskSelect();
   updateReport();
   updateSales();
 }
 
-function saveData() {
-  localStorage.setItem('cosmo_tasks', JSON.stringify(tasks));
-  localStorage.setItem('cosmo_logs', JSON.stringify(timeLogs));
-  localStorage.setItem('cosmo_clients', JSON.stringify(clients));
+// ── DB HELPERS ──────────────────────────────────────────────────────────────
+async function dbUpsert(table, id, data) {
+  const { error } = await supa.from(table).upsert({ id, data });
+  if (error) console.error('upsert', table, error.message);
 }
+
+async function dbDelete(table, id) {
+  const { error } = await supa.from(table).delete().eq('id', id);
+  if (error) console.error('delete', table, error.message);
+}
+
+async function dbLoad(table) {
+  const { data, error } = await supa.from(table).select('*');
+  if (error) { console.error('load', table, error.message); return []; }
+  return data.map(r => r.data);
+}
+
+// Persist everything to Supabase
+async function saveTask(task) {
+  await dbUpsert('tasks', task.id, task);
+}
+async function deleteTaskDB(id) {
+  await dbDelete('tasks', id);
+}
+async function saveLog(log) {
+  await dbUpsert('time_logs', log.id, log);
+}
+async function deleteLogDB(id) {
+  await dbDelete('time_logs', id);
+}
+async function saveFooterLinkDB(link) {
+  await dbUpsert('footer_links', link.id, link);
+}
+async function deleteFooterLinkDB(id) {
+  await dbDelete('footer_links', id);
+}
+
+// Legacy no-op (called in many places — keep to avoid errors)
+function saveData() {}
 
 function addLinkToForm() {
   const label = document.getElementById('in-link-label').value.trim();
@@ -1614,7 +1682,7 @@ function addTask() {
   tasks.unshift(task);
   pendingLinks = [];
   document.getElementById('link-preview').innerHTML = '';
-  saveData();
+  saveTask(task);
   renderTasks();
   updateLogTaskSelect();
   updateReport();
@@ -1721,14 +1789,17 @@ function getLoggedMins(id) {
 
 function toggleDone(id) {
   const t = tasks.find(t => t.id === id);
-  if (t) { t.done = !t.done; saveData(); renderTasks(); updateReport(); updateSales(); }
+  if (t) { t.done = !t.done; saveTask(t); renderTasks(); updateReport(); updateSales(); }
 }
 
 function deleteTask(id) {
   if (!confirm('¿Eliminar esta tarea?')) return;
+  const logsToDelete = timeLogs.filter(l => l.taskId === id);
   tasks = tasks.filter(t => t.id !== id);
   timeLogs = timeLogs.filter(l => l.taskId !== id);
-  saveData(); renderTasks(); updateLogTaskSelect(); updateReport(); updateSales();
+  deleteTaskDB(id);
+  logsToDelete.forEach(l => deleteLogDB(l.id));
+  renderTasks(); updateLogTaskSelect(); updateReport(); updateSales();
 }
 
 // ============================================================
@@ -1759,15 +1830,17 @@ function stopTimer() {
   if (mins >= 1) {
     const task = tasks.find(t => t.id === activeTaskId);
     if (task) {
-      timeLogs.push({
+      const log = {
+        id: 'log_' + Date.now(),
         taskId: activeTaskId,
         mins,
         date: new Date().toISOString().split('T')[0],
         cliente: task.cliente,
         categoria: task.categoria,
         titulo: task.titulo
-      });
-      saveData();
+      };
+      timeLogs.push(log);
+      saveLog(log);
     }
   }
   clearInterval(timerInterval);
@@ -1797,8 +1870,9 @@ function logManual() {
   if (!mins || !taskId || !date) { alert('Completa todos los campos'); return; }
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
-  timeLogs.push({ taskId, mins, date, cliente: task.cliente, categoria: task.categoria, titulo: task.titulo });
-  saveData();
+  const logEntry = { id: 'log_' + Date.now(), taskId, mins, date, cliente: task.cliente, categoria: task.categoria, titulo: task.titulo };
+  timeLogs.push(logEntry);
+  saveLog(logEntry);
   updateReport();
   updateSales();
   document.getElementById('log-mins').value = '';
@@ -1869,7 +1943,7 @@ function addNoteFromModal() {
     date: now.toISOString().split('T')[0],
     time: now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'),
   });
-  saveData();
+  saveTask(task);
   renderModalNotes(task);
   renderTasks();
   document.getElementById('modal-note-text').value = '';
@@ -1879,7 +1953,7 @@ function deleteNote(taskId, index) {
   const task = tasks.find(t => t.id === taskId);
   if (!task || !task.notes) return;
   task.notes.splice(index, 1);
-  saveData();
+  saveTask(task);
   renderModalNotes(task);
   renderTasks();
 }
@@ -1924,7 +1998,7 @@ function addLinkFromModal() {
   if (!task) return;
   if (!task.links) task.links = [];
   task.links.push({ label: label || url, url });
-  saveData();
+  saveTask(task);
   renderModalLinks(task);
   renderTasks();
   document.getElementById('modal-link-label').value = '';
@@ -1935,7 +2009,7 @@ function removeLinkFromTask(taskId, index) {
   const task = tasks.find(t => t.id === taskId);
   if (!task || !task.links) return;
   task.links.splice(index, 1);
-  saveData();
+  saveTask(task);
   renderModalLinks(task);
   renderTasks();
 }
@@ -1975,7 +2049,7 @@ function saveEdit() {
   task.deadline = document.getElementById('edit-deadline').value;
   task.prioridad = document.getElementById('edit-prioridad').value;
   task.tiempo = parseInt(document.getElementById('edit-tiempo').value) || 60;
-  saveData();
+  saveTask(task);
   renderTasks();
   updateLogTaskSelect();
   updateReport();
@@ -2140,10 +2214,10 @@ const DEFAULT_FOOTER_LINKS = [
   { label: 'Drive', url: 'https://drive.google.com', icon: '💾' },
 ];
 
-let footerLinks = JSON.parse(localStorage.getItem('cosmo_footer_links') || 'null') || [...DEFAULT_FOOTER_LINKS];
+let footerLinks = [...DEFAULT_FOOTER_LINKS];
 
 function saveFooterLinks() {
-  localStorage.setItem('cosmo_footer_links', JSON.stringify(footerLinks));
+  // replaced by per-item saveFooterLinkDB / deleteFooterLinkDB
 }
 
 function renderFooterLinks() {
@@ -2185,8 +2259,9 @@ function addFooterLink() {
   const url = document.getElementById('fl-url').value.trim();
   if (!label || !url) return;
   const icon = getUrlIcon(url);
-  footerLinks.push({ label, url, icon });
-  saveFooterLinks();
+  const newLink = { id: 'fl_' + Date.now(), label, url, icon };
+  footerLinks.push(newLink);
+  saveFooterLinkDB(newLink);
   renderFooterLinks();
   renderFooterSavedList();
   document.getElementById('fl-label').value = '';
@@ -2194,8 +2269,9 @@ function addFooterLink() {
 }
 
 function removeFooterLink(i) {
+  const link = footerLinks[i];
+  if (link && link.id) deleteFooterLinkDB(link.id);
   footerLinks.splice(i, 1);
-  saveFooterLinks();
   renderFooterLinks();
   renderFooterSavedList();
 }
