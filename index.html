@@ -117,7 +117,8 @@
     margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    flex-shrink: 0;
   }
   .time-display {
     font-family: var(--font-mono);
@@ -143,9 +144,9 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
   /* MAIN LAYOUT */
-  .main { flex: 1; display: flex; overflow: hidden; }
+  .main { flex: 1; display: flex; overflow: auto; }
   .panel { display: none; flex: 1; overflow: auto; padding-bottom: 48px; }
-  .panel.active { display: flex; flex-direction: column; }
+  .panel.active { display: flex; flex-direction: column; min-height: 0; }
 
   /* TAREAS PANEL */
   .tasks-layout {
@@ -309,6 +310,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
   }
   .task-meta {
     display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
@@ -429,7 +431,7 @@
     border-radius: var(--r2);
     padding: 20px;
   }
-  .chart-title { font-size: 13px; font-weight: 500; margin-bottom: 16px; color: var(--text); }
+  .chart-title { font-size: 13px; font-weight: 500; margin-bottom: 16px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .bar-chart { display: flex; flex-direction: column; gap: 10px; }
   .bar-row { display: grid; grid-template-columns: 110px 1fr 50px; gap: 10px; align-items: center; }
@@ -660,6 +662,8 @@
     transition: background 0.15s; white-space: nowrap;
   }
   .modal-link-open:hover { background: rgba(45,212,191,0.1); }
+  .edit-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 480px) { .edit-grid-2col { grid-template-columns: 1fr; } }
 
   /* CLIENT MANAGER */
   .client-select-wrap {
@@ -851,6 +855,176 @@
     background: rgba(129,140,248,0.1); color: var(--accent2);
     border: 1px solid rgba(129,140,248,0.18);
   }
+
+  /* ══════════════════════════════════════════════════════════
+     RESPONSIVE — MOBILE FIRST
+     ══════════════════════════════════════════════════════════ */
+
+  /* ── Tablet (≤768px) ── */
+  @media (max-width: 768px) {
+    /* Topbar */
+    .topbar { padding: 0 14px; height: 52px; }
+    .logo img { height: 22px; }
+    .nav-tab { padding: 0 12px; font-size: 12px; gap: 4px; }
+    .nav-tab .dot { display: none; }
+    .sales-pill { display: none; }
+    .time-display { display: none; }
+
+    /* Tasks layout: stack sidebar below board */
+    .tasks-layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      height: auto;
+      min-height: calc(100vh - 52px - 48px);
+      overflow: visible;
+    }
+    .sidebar {
+      border-right: none;
+      border-bottom: 1px solid var(--glass-border);
+      max-height: none;
+      overflow: visible;
+    }
+    .task-board { padding: 14px; }
+
+    /* KPI grid: 2 cols */
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* Two cols → single */
+    .two-cols { grid-template-columns: 1fr; }
+
+    /* Pipeline → 2 cols wrap */
+    .pipeline-stages {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .pipeline-stage::after { display: none; }
+
+    /* Sales KPI → single col */
+    .sales-kpi-row { grid-template-columns: 1fr; }
+
+    /* Report/Sales layout padding */
+    .report-layout, .sales-layout { padding: 14px; gap: 14px; }
+
+    /* Report header stack */
+    .report-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+
+    /* Sales header stack */
+    .sales-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+    /* Log table: hide less important columns */
+    .log-table th:nth-child(2),
+    .log-table td:nth-child(2) { display: none; }
+    .log-table th:nth-child(4),
+    .log-table td:nth-child(4) { display: none; }
+
+    /* Modals full width */
+    .modal, .edit-modal {
+      width: 95vw !important;
+      max-width: 95vw !important;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    /* Footer bar */
+    #footer-bar { padding: 0 12px; height: 44px; }
+    .panel { padding-bottom: 44px; }
+  }
+
+  /* ── Mobile (≤480px) ── */
+  @media (max-width: 480px) {
+    /* Topbar compact */
+    .topbar { padding: 0 10px; height: 50px; gap: 0; }
+    .logo img { height: 20px; }
+    .nav-tab { padding: 0 10px; font-size: 11px; }
+
+    /* Sidebar collapsible */
+    .sidebar-toggle {
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(255,198,41,0.05);
+      border-bottom: 1px solid var(--glass-border);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--cosmo);
+    }
+    .sidebar-toggle-icon { font-size: 14px; transition: transform 0.25s; }
+    .sidebar-toggle-icon.open { transform: rotate(180deg); }
+    .sidebar-inner { display: none; padding: 14px; }
+    .sidebar-inner.open { display: flex; flex-direction: column; gap: 10px; }
+    .sidebar {
+      padding: 0;
+      gap: 0;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    /* Task cards compact */
+    .task-card { padding: 10px 12px; gap: 8px; }
+    .task-title { font-size: 13px; }
+    .task-meta { gap: 4px; }
+    .task-tag { font-size: 9px; padding: 1px 5px; }
+
+    /* KPI: 2 cols compact */
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .kpi-value { font-size: 20px; }
+    .kpi-card { padding: 10px 12px; }
+
+    /* Pipeline: single col */
+    .pipeline-stages { grid-template-columns: repeat(2, 1fr); }
+
+    /* Report/sales padding */
+    .report-layout, .sales-layout { padding: 10px; gap: 10px; }
+
+    /* Insight items compact */
+    .insight-item { padding: 10px; gap: 8px; }
+    .insight-desc { font-size: 11px; }
+
+    /* Bar chart labels */
+    .bar-row { grid-template-columns: 80px 1fr 44px; }
+    .bar-label { font-size: 10px; }
+
+    /* Log table: only task + time */
+    .log-table th:nth-child(3),
+    .log-table td:nth-child(3) { display: none; }
+    .log-table th:nth-child(5),
+    .log-table td:nth-child(5) { font-size: 11px; }
+
+    /* Timer bar */
+    .timer-bar { padding: 8px 12px; gap: 10px; }
+    .timer-display { font-size: 16px; min-width: 60px; }
+
+    /* Footer */
+    #footer-bar { padding: 0 10px; height: 42px; gap: 4px; }
+    .panel { padding-bottom: 42px; }
+    .tasks-layout { min-height: calc(100vh - 50px - 42px); }
+
+    /* Modals */
+    .modal, .edit-modal {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      border-radius: 16px 16px 0 0;
+      position: fixed;
+      bottom: 0;
+      margin: 0;
+    }
+    .modal-overlay, .edit-modal-overlay {
+      align-items: flex-end !important;
+    }
+
+    /* Edit modal grid → single col */
+    .edit-modal > div[style*="grid"] {
+      display: flex !important;
+      flex-direction: column !important;
+    }
+  }
+
+  /* ── Sidebar toggle only shown on mobile ── */
+  .sidebar-toggle { display: none; }
+
 </style>
 </head>
 <body>
@@ -895,6 +1069,11 @@
 
       <!-- SIDEBAR FORM -->
       <div class="sidebar">
+        <div class="sidebar-toggle" onclick="toggleSidebar()">
+          <span>+ Nueva Tarea</span>
+          <span class="sidebar-toggle-icon" id="sidebar-icon">▾</span>
+        </div>
+        <div class="sidebar-inner" id="sidebar-inner">
         <div>
           <div class="form-section-title">Nueva Tarea</div>
           <div style="display:flex;flex-direction:column;gap:10px;">
@@ -989,6 +1168,8 @@
           </div>
         </div>
       </div>
+        </div><!-- /sidebar-inner -->
+      </div><!-- /sidebar-inner wrapper -->
 
       <!-- BOARD -->
       <div class="task-board">
@@ -1066,7 +1247,7 @@
 
       <div class="chart-card">
         <div class="chart-title">Log de tiempo reciente</div>
-        <table class="log-table">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;"><table class="log-table">
           <thead>
             <tr>
               <th>Tarea</th>
@@ -1077,7 +1258,7 @@
             </tr>
           </thead>
           <tbody id="log-tbody"></tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   </div>
@@ -1287,7 +1468,7 @@
       <label class="form-label">Proyecto</label>
       <input class="form-input" id="edit-proyecto" placeholder="Nombre del proyecto">
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div class="edit-grid-2col">
       <div class="form-group">
         <label class="form-label">Deadline</label>
         <input class="form-input" type="date" id="edit-deadline">
@@ -1324,6 +1505,7 @@
   padding: 0 20px;
   height: 48px;
   display: flex; align-items: center; gap: 6px;
+  box-sizing: border-box;
 ">
   <span style="font-size:9px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,198,41,0.4);margin-right:6px;white-space:nowrap;">ACCESOS</span>
   <div id="footer-links" style="display:flex;gap:4px;flex:1;overflow-x:auto;align-items:center;scrollbar-width:none;">
@@ -2203,6 +2385,17 @@ function showPanel(name, el) {
   if (el) el.classList.add('active');
   if (name === 'reporte') updateReport();
   if (name === 'ventas') updateSales();
+}
+
+// ============================================================
+// SIDEBAR TOGGLE (mobile)
+// ============================================================
+function toggleSidebar() {
+  const inner = document.getElementById('sidebar-inner');
+  const icon  = document.getElementById('sidebar-icon');
+  if (!inner) return;
+  inner.classList.toggle('open');
+  icon.classList.toggle('open');
 }
 
 // ============================================================
