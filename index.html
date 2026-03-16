@@ -1744,7 +1744,7 @@ async function loginWithGoogle() {
   const { error } = await supa.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.href,
+      redirectTo: 'https://moloctoc.github.io/Cosmogonia/',
     }
   });
   if (error) {
