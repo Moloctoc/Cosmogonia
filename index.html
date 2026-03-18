@@ -1755,8 +1755,9 @@ async function loginWithGoogle() {
   }
 }
 
+const ALLOWED_EMAIL = 'bernardo@cosmogonia.com.mx';
+
 async function checkAuth() {
-  const authScreen = document.getElementById('auth-screen');
   const loading = document.getElementById('auth-loading');
   loading.classList.add('show');
   document.getElementById('btn-google-login').style.display = 'none';
@@ -1764,6 +1765,13 @@ async function checkAuth() {
   const { data: { session } } = await supa.auth.getSession();
 
   if (session && session.user) {
+    if (session.user.email !== ALLOWED_EMAIL) {
+      await supa.auth.signOut();
+      loading.classList.remove('show');
+      document.getElementById('btn-google-login').style.display = 'flex';
+      showAccessDenied();
+      return;
+    }
     showUserBadge(session.user);
     hideAuthScreen();
     await init();
@@ -1771,6 +1779,17 @@ async function checkAuth() {
     loading.classList.remove('show');
     document.getElementById('btn-google-login').style.display = 'flex';
   }
+}
+
+function showAccessDenied() {
+  const card = document.querySelector('.auth-card');
+  const existing = document.getElementById('access-denied-msg');
+  if (existing) return;
+  const msg = document.createElement('div');
+  msg.id = 'access-denied-msg';
+  msg.style.cssText = 'margin-top:16px;padding:10px 14px;background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.25);border-radius:8px;font-size:12px;color:#fb7185;text-align:center;';
+  msg.textContent = 'Acceso no autorizado para esta cuenta.';
+  card.appendChild(msg);
 }
 
 function showUserBadge(user) {
@@ -1817,6 +1836,11 @@ async function signOut() {
 // Listen for auth state changes (handles redirect back from Google)
 supa.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_IN' && session) {
+    if (session.user.email !== ALLOWED_EMAIL) {
+      await supa.auth.signOut();
+      showAccessDenied();
+      return;
+    }
     showUserBadge(session.user);
     hideAuthScreen();
     if (!dbReady) await init();
