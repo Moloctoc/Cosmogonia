@@ -1150,6 +1150,68 @@
     .auth-title { font-size: 18px; }
   }
 
+
+  /* SUBTAREAS */
+  .subtask-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 6px; }
+  .subtask-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--r);
+    transition: border-color 0.15s;
+  }
+  .subtask-item:hover { border-color: rgba(255,198,41,0.15); }
+  .subtask-check {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .subtask-check:hover { border-color: var(--cosmo); }
+  .subtask-check.checked { background: var(--cosmo); border-color: var(--cosmo); }
+  .subtask-check.checked::after { content:''; width:5px; height:3px; border-left:1.5px solid #000; border-bottom:1.5px solid #000; transform: rotate(-45deg) translate(1px,-1px); }
+  .subtask-text { flex: 1; font-size: 12px; color: var(--text); line-height: 1.4; }
+  .subtask-text.done { text-decoration: line-through; color: var(--dim); }
+  .subtask-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-family: 'Inter', sans-serif; font-size: 10px;
+    padding: 2px 6px; border-radius: 4px;
+    background: rgba(45,212,191,0.08); color: var(--teal);
+    border: 1px solid rgba(45,212,191,0.18);
+  }
+  /* TAGS */
+  .tag-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 500; font-family: 'Inter', sans-serif;
+    padding: 2px 7px; border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: default;
+  }
+  .tag-input-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .tag-input-row input {
+    flex: 1; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r);
+    color: var(--text); font-family: 'Inter',sans-serif; font-size: 12px;
+    padding: 5px 8px; outline: none; transition: border-color 0.15s;
+  }
+  .tag-input-row input:focus { border-color: rgba(255,198,41,0.4); }
+  .tag-input-row button {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r); color: var(--muted);
+    padding: 5px 10px; font-size: 12px; cursor: pointer;
+    font-family: 'Inter',sans-serif; transition: all 0.15s; white-space: nowrap;
+  }
+  .tag-input-row button:hover { background: var(--border); color: var(--text); }
+  .tags-wrap { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .tag-chip-remove {
+    background: none; border: none; cursor: pointer;
+    font-size: 11px; line-height: 1; padding: 0 0 0 2px;
+    opacity: 0.6; transition: opacity 0.15s;
+  }
+  .tag-chip-remove:hover { opacity: 1; }
+
 </style>
 </head>
 <body>
@@ -1181,6 +1243,7 @@
       <span>Verificando sesión...</span>
     </div>
 
+    <div id="auth-error" style="display:none;margin-top:14px;padding:10px 14px;background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.25);border-radius:8px;font-size:12px;color:#fb7185;text-align:center;width:100%;"></div>
     <div class="auth-footer">
       Acceso restringido · Solo usuarios autorizados
     </div>
@@ -1260,10 +1323,6 @@
           <div class="form-section-title">Nueva Tarea</div>
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div class="form-group">
-              <label class="form-label">Tarea</label>
-              <input class="form-input" id="in-titulo" placeholder="Describe la tarea...">
-            </div>
-            <div class="form-group">
               <label class="form-label">Cliente</label>
               <div class="client-select-wrap" id="wrap-in-cliente">
                 <button type="button" class="client-display-btn" id="btn-in-cliente" onclick="toggleClientDropdown('in-cliente')">
@@ -1284,6 +1343,14 @@
               </div>
             </div>
             <div class="form-group">
+              <label class="form-label">Proyecto</label>
+              <input class="form-input" id="in-proyecto" placeholder="ej. Roadmap Q2, Catálogo...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tarea</label>
+              <input class="form-input" id="in-titulo" placeholder="Describe la tarea...">
+            </div>
+            <div class="form-group">
               <label class="form-label">Categoría</label>
               <select class="form-select" id="in-categoria">
                 <option value="ventas">Ventas</option>
@@ -1292,10 +1359,6 @@
                 <option value="admin">Admin / Ops</option>
                 <option value="estrategia">Estrategia</option>
               </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Proyecto</label>
-              <input class="form-input" id="in-proyecto" placeholder="ej. Roadmap Q2, Catálogo...">
             </div>
             <div class="form-group">
               <label class="form-label">Deadline</label>
@@ -1312,6 +1375,14 @@
                 <option value="media" selected>Media</option>
                 <option value="baja">Baja</option>
               </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Etiquetas</label>
+              <div class="tag-input-row">
+                <input id="in-tag-input" placeholder="ej. urgente, Q2, diseño..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTagToForm()}">
+                <button onclick="addTagToForm()">+ Tag</button>
+              </div>
+              <div class="tags-wrap" id="in-tags-preview"></div>
             </div>
             <div class="form-group">
               <label class="form-label">Links del archivo de trabajo</label>
@@ -1409,6 +1480,15 @@
         <div class="chart-card">
           <div class="chart-title">Tiempo por categoría</div>
           <div class="bar-chart" id="chart-categorias"></div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Tiempo por día — semana actual</div>
+        <div id="chart-daily-week" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;font-family:'Inter',sans-serif;font-weight:600;letter-spacing:0.07em;color:var(--dim);text-transform:uppercase;">Total semana</span>
+          <span style="font-size:16px;font-weight:700;color:var(--cosmo);font-family:'Inter',sans-serif;" id="weekly-total-hrs">—</span>
         </div>
       </div>
 
@@ -1552,6 +1632,31 @@
       <button class="edit-btn" onclick="openEditModal(currentModalTaskId)" title="Editar tarea" style="flex-shrink:0;margin-top:2px;">✎</button>
     </div>
     <div style="font-size:12px;font-family:var(--font-mono);color:var(--muted);margin-bottom:14px;" id="modal-task-info"></div>
+
+    <!-- SUBTAREAS SECTION -->
+    <div class="notes-section" style="margin-bottom:14px;">
+      <div class="notes-header" style="margin-bottom:8px;">
+        <span>SUBTAREAS</span>
+        <span id="modal-subtask-count" style="font-size:10px;color:var(--teal);font-family:'Inter',sans-serif;"></span>
+      </div>
+      <div class="subtask-list" id="modal-subtask-list"></div>
+      <div class="note-add-row">
+        <textarea id="modal-subtask-text" placeholder="Nueva subtarea..." style="height:44px;"></textarea>
+        <button class="btn-note-add" onclick="addSubtaskFromModal()">+ Subtarea</button>
+      </div>
+    </div>
+
+    <!-- TAGS SECTION -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-family:'Inter',sans-serif;font-weight:600;letter-spacing:0.07em;color:var(--dim);text-transform:uppercase;margin-bottom:8px;">ETIQUETAS</div>
+      <div class="tags-wrap" id="modal-tags-wrap"></div>
+      <div class="tag-input-row">
+        <input id="modal-tag-input" placeholder="Nueva etiqueta..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTagFromModal()}">
+        <button onclick="addTagFromModal()">+ Tag</button>
+      </div>
+    </div>
+
+    <div class="divider" style="margin-bottom:14px;"></div>
 
     <!-- NOTES SECTION -->
     <div class="notes-section">
@@ -1755,7 +1860,7 @@ async function loginWithGoogle() {
   }
 }
 
-const ALLOWED_EMAIL = 'bernardo@cosmogonia.com.mx';
+const ALLOWED_EMAILS = ['bernardo@cosmogonia.com.mx'];
 
 async function checkAuth() {
   const loading = document.getElementById('auth-loading');
@@ -1765,7 +1870,7 @@ async function checkAuth() {
   const { data: { session } } = await supa.auth.getSession();
 
   if (session && session.user) {
-    if (session.user.email !== ALLOWED_EMAIL) {
+    if (!ALLOWED_EMAILS.includes(session.user.email?.toLowerCase())) {
       await supa.auth.signOut();
       loading.classList.remove('show');
       document.getElementById('btn-google-login').style.display = 'flex';
@@ -1782,14 +1887,15 @@ async function checkAuth() {
 }
 
 function showAccessDenied() {
-  const card = document.querySelector('.auth-card');
-  const existing = document.getElementById('access-denied-msg');
-  if (existing) return;
-  const msg = document.createElement('div');
-  msg.id = 'access-denied-msg';
-  msg.style.cssText = 'margin-top:16px;padding:10px 14px;background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.25);border-radius:8px;font-size:12px;color:#fb7185;text-align:center;';
-  msg.textContent = 'Acceso no autorizado para esta cuenta.';
-  card.appendChild(msg);
+  showAuthError('Acceso no autorizado. Esta cuenta no tiene permisos.');
+}
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+function clearAuthError() {
+  const el = document.getElementById('auth-error');
+  if (el) el.style.display = 'none';
 }
 
 function showUserBadge(user) {
@@ -1836,7 +1942,7 @@ async function signOut() {
 // Listen for auth state changes (handles redirect back from Google)
 supa.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_IN' && session) {
-    if (session.user.email !== ALLOWED_EMAIL) {
+    if (!ALLOWED_EMAILS.includes(session.user.email?.toLowerCase())) {
       await supa.auth.signOut();
       showAccessDenied();
       return;
@@ -2143,13 +2249,17 @@ function addTask() {
     tiempo: parseInt(document.getElementById('in-tiempo').value) || 60,
     prioridad: document.getElementById('in-prioridad').value,
     links: [...pendingLinks],
+    tags: [...pendingTags],
+    subtareas: [],
     done: false,
     created: new Date().toISOString().split('T')[0],
   };
 
   tasks.unshift(task);
   pendingLinks = [];
+  pendingTags = [];
   document.getElementById('link-preview').innerHTML = '';
+  document.getElementById('in-tags-preview').innerHTML = '';
   saveTask(task);
   renderTasks();
   updateLogTaskSelect();
@@ -2177,6 +2287,10 @@ function renderTasks() {
   else if (currentFilter === 'Levering Trade') filtered = tasks.filter(t => t.cliente === 'Levering Trade');
   else if (currentFilter === 'urgente') filtered = tasks.filter(t => daysUntil(t.deadline) <= 2 && !t.done);
   else if (currentFilter === 'pendiente') filtered = tasks.filter(t => !t.done);
+  else if (currentFilter.startsWith('tag:')) {
+    const tag = currentFilter.slice(4);
+    filtered = tasks.filter(t => t.tags && t.tags.includes(tag));
+  }
 
   if (filtered.length === 0) {
     container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">□</div><div class="empty-state-text">Sin tareas en esta vista</div></div>';
@@ -2184,6 +2298,7 @@ function renderTasks() {
   }
 
   container.innerHTML = filtered.map(t => renderTaskCard(t)).join('');
+  updateDynamicFilters();
 }
 
 function renderTaskCard(t) {
@@ -2212,6 +2327,8 @@ function renderTaskCard(t) {
         ${loggedDisp ? `<span style="font-family:var(--font-mono);font-size:10px;color:var(--teal)">▸ ${loggedDisp}</span>` : ''}
         ${linksHtml}
         ${(t.notes && t.notes.length > 0) ? `<span class="task-note-badge">✎ ${t.notes.length}</span>` : ''}
+        ${renderSubtaskBadge(t)}
+        ${renderTagChips(t)}
       </div>
     </div>
     <div class="task-actions">
@@ -2360,6 +2477,8 @@ function showTaskModal(id) {
   document.getElementById('modal-task-info').textContent =
     `${task.cliente} · ${task.categoria} · ${task.proyecto}`;
 
+  renderModalSubtasks(task);
+  renderModalTags(task);
   renderModalNotes(task);
   renderModalLinks(task);
 
@@ -2604,6 +2723,8 @@ function updateReport() {
   document.getElementById('report-range').textContent = `${labels[currentPeriod]} · ${logs.length} sesiones · ${(totalMins/60).toFixed(1)}h total`;
 }
 
+  renderDailyWeekChart();
+
 function renderBarChart(id, data, colors, total) {
   const el = document.getElementById(id);
   if (Object.keys(data).length === 0) {
@@ -2763,6 +2884,211 @@ function openFooterEdit() {
 function closeFooterEdit(e) {
   if (e.target.id === 'footer-edit-overlay')
     document.getElementById('footer-edit-overlay').style.display = 'none';
+}
+
+// ============================================================
+// TAGS
+// ============================================================
+const TAG_COLORS = [
+  {bg:'rgba(196,181,253,0.15)',color:'#c4b5fd',border:'rgba(196,181,253,0.3)'},
+  {bg:'rgba(255,198,41,0.12)',color:'#FFC629',border:'rgba(255,198,41,0.3)'},
+  {bg:'rgba(45,212,191,0.12)',color:'#2dd4bf',border:'rgba(45,212,191,0.3)'},
+  {bg:'rgba(251,146,60,0.12)',color:'#fb923c',border:'rgba(251,146,60,0.3)'},
+  {bg:'rgba(96,165,250,0.12)',color:'#60a5fa',border:'rgba(96,165,250,0.3)'},
+  {bg:'rgba(251,113,133,0.12)',color:'#fb7185',border:'rgba(251,113,133,0.3)'},
+  {bg:'rgba(74,222,128,0.12)',color:'#4ade80',border:'rgba(74,222,128,0.3)'},
+  {bg:'rgba(244,114,182,0.12)',color:'#f472b6',border:'rgba(244,114,182,0.3)'},
+  {bg:'rgba(167,139,250,0.12)',color:'#a78bfa',border:'rgba(167,139,250,0.3)'},
+  {bg:'rgba(52,211,153,0.12)',color:'#34d399',border:'rgba(34,211,153,0.3)'},
+];
+
+function getTagColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return TAG_COLORS[h % TAG_COLORS.length];
+}
+
+function renderTagChip(tag, onRemove) {
+  const c = getTagColor(tag);
+  const removeBtn = onRemove ? `<button class="tag-chip-remove" onclick="event.stopPropagation();(${onRemove})('${tag.replace(/'/g,"\\'")}')">✕</button>` : '';
+  return `<span class="tag-chip" style="background:${c.bg};color:${c.color};border-color:${c.border};">${tag}${removeBtn}</span>`;
+}
+
+function renderTagChips(t) {
+  if (!t.tags || t.tags.length === 0) return '';
+  return t.tags.map(tag => renderTagChip(tag, null)).join('');
+}
+
+// Form tags
+let pendingTags = [];
+function addTagToForm() {
+  const input = document.getElementById('in-tag-input');
+  const val = input.value.trim().toLowerCase();
+  if (!val || pendingTags.includes(val)) return;
+  pendingTags.push(val);
+  input.value = '';
+  renderPendingTags();
+}
+function renderPendingTags() {
+  const wrap = document.getElementById('in-tags-preview');
+  if (!wrap) return;
+  wrap.innerHTML = pendingTags.map((tag, i) => {
+    const c = getTagColor(tag);
+    return `<span class="tag-chip" style="background:${c.bg};color:${c.color};border-color:${c.border};">
+      ${tag}<button class="tag-chip-remove" onclick="pendingTags.splice(${i},1);renderPendingTags()">✕</button>
+    </span>`;
+  }).join('');
+}
+// Modal tags
+function renderModalTags(task) {
+  const wrap = document.getElementById('modal-tags-wrap');
+  if (!wrap) return;
+  const tags = task.tags || [];
+  wrap.innerHTML = tags.map(tag => renderTagChip(tag, `removeTagFromTask.bind(null,'${task.id}')`)).join('');
+}
+function addTagFromModal() {
+  const input = document.getElementById('modal-tag-input');
+  const val = input.value.trim().toLowerCase();
+  if (!val) return;
+  const task = tasks.find(t => t.id === currentModalTaskId);
+  if (!task) return;
+  if (!task.tags) task.tags = [];
+  if (!task.tags.includes(val)) {
+    task.tags.push(val);
+    saveTask(task);
+    renderModalTags(task);
+    renderTasks();
+    updateDynamicFilters();
+  }
+  input.value = '';
+}
+function removeTagFromTask(taskId, tag) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task || !task.tags) return;
+  task.tags = task.tags.filter(t => t !== tag);
+  saveTask(task);
+  renderModalTags(task);
+  renderTasks();
+  updateDynamicFilters();
+}
+
+// Dynamic tag filters
+function updateDynamicFilters() {
+  const bar = document.getElementById('filter-bar');
+  if (!bar) return;
+  // Collect unique tags
+  const allTags = [...new Set(tasks.flatMap(t => t.tags || []))].slice(0, 8);
+  // Remove old tag chips
+  bar.querySelectorAll('.filter-chip[data-tag]').forEach(el => el.remove());
+  allTags.forEach(tag => {
+    const chip = document.createElement('div');
+    chip.className = 'filter-chip';
+    chip.dataset.tag = tag;
+    chip.textContent = '#' + tag;
+    chip.onclick = function() { setFilter('tag:' + tag, this); };
+    bar.appendChild(chip);
+  });
+}
+
+// ============================================================
+// SUBTAREAS
+// ============================================================
+function renderSubtaskBadge(t) {
+  if (!t.subtareas || t.subtareas.length === 0) return '';
+  const done = t.subtareas.filter(s => s.done).length;
+  const total = t.subtareas.length;
+  const color = done === total ? 'var(--green)' : 'var(--teal)';
+  return `<span class="subtask-badge" style="color:${color};border-color:${done===total?'rgba(74,222,128,0.25)':'rgba(45,212,191,0.2)'};">✓ ${done}/${total}</span>`;
+}
+
+function renderModalSubtasks(task) {
+  const list = document.getElementById('modal-subtask-list');
+  const countEl = document.getElementById('modal-subtask-count');
+  if (!list) return;
+  const subs = task.subtareas || [];
+  const done = subs.filter(s => s.done).length;
+  if (countEl) countEl.textContent = subs.length > 0 ? `${done}/${subs.length}` : '';
+  if (subs.length === 0) {
+    list.innerHTML = '<div class="notes-empty">Sin subtareas</div>';
+    return;
+  }
+  list.innerHTML = subs.map((s, i) => `
+    <div class="subtask-item">
+      <div class="subtask-check ${s.done ? 'checked' : ''}" onclick="toggleSubtask('${task.id}','${s.id}')"></div>
+      <span class="subtask-text ${s.done ? 'done' : ''}">${escHtml(s.text)}</span>
+      <button class="note-del" style="opacity:1;position:static;" onclick="deleteSubtask('${task.id}','${s.id}')">✕</button>
+    </div>`).join('');
+}
+
+function addSubtaskFromModal() {
+  const text = document.getElementById('modal-subtask-text').value.trim();
+  if (!text) return;
+  const task = tasks.find(t => t.id === currentModalTaskId);
+  if (!task) return;
+  if (!task.subtareas) task.subtareas = [];
+  task.subtareas.push({ id: 'sub_' + Date.now(), text, done: false });
+  saveTask(task);
+  renderModalSubtasks(task);
+  renderTasks();
+  document.getElementById('modal-subtask-text').value = '';
+}
+
+function toggleSubtask(taskId, subId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task || !task.subtareas) return;
+  const sub = task.subtareas.find(s => s.id === subId);
+  if (sub) { sub.done = !sub.done; saveTask(task); renderModalSubtasks(task); renderTasks(); }
+}
+
+function deleteSubtask(taskId, subId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task || !task.subtareas) return;
+  task.subtareas = task.subtareas.filter(s => s.id !== subId);
+  saveTask(task);
+  renderModalSubtasks(task);
+  renderTasks();
+}
+
+// ============================================================
+// DAILY TIME CHART
+// ============================================================
+function renderDailyWeekChart() {
+  const container = document.getElementById('chart-daily-week');
+  const totalEl   = document.getElementById('weekly-total-hrs');
+  if (!container) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dayOfWeek = today.getDay(); // 0=Sun
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+  const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const dayData = days.map((name, i) => {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const mins = timeLogs.filter(l => l.date === dateStr).reduce((a,b) => a + b.mins, 0);
+    const isToday = dateStr === today.toISOString().split('T')[0];
+    return { name, dateStr, mins, hrs: Math.round(mins / 60 * 10) / 10, isToday };
+  });
+
+  const maxMins = Math.max(...dayData.map(d => d.mins), 60);
+  const totalMins = dayData.reduce((a,b) => a + b.mins, 0);
+  if (totalEl) totalEl.textContent = (totalMins / 60).toFixed(1) + 'h';
+
+  const DAY_COLORS = ['var(--accent2)','var(--teal)','var(--orange)','var(--cosmo)','var(--blue)','var(--muted)','var(--muted)'];
+
+  container.innerHTML = dayData.map((d, i) => {
+    const pct = maxMins > 0 ? Math.round(d.mins / maxMins * 100) : 0;
+    const color = d.isToday ? 'var(--cosmo)' : DAY_COLORS[i];
+    const todayStyle = d.isToday ? 'font-weight:600;color:var(--text)' : '';
+    return `<div style="display:grid;grid-template-columns:36px 1fr 44px;gap:10px;align-items:center;">
+      <span style="font-size:11px;font-family:'Inter',sans-serif;color:${d.isToday?'var(--cosmo)':'var(--muted)'};text-align:right;${todayStyle}">${d.name}</span>
+      <div style="height:8px;background:var(--surface);border-radius:4px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:4px;transition:width 0.5s ease;"></div>
+      </div>
+      <span style="font-size:11px;font-family:'Inter',sans-serif;color:${d.hrs>0?'var(--muted)':'var(--dim)'};${todayStyle}">${d.hrs > 0 ? d.hrs + 'h' : '—'}</span>
+    </div>`;
+  }).join('');
 }
 
 // ============================================================
